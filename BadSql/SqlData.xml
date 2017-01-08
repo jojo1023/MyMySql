@@ -1,4 +1,28 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Tables>
-  
+  <Table name="Students" currentID="2">
+    <Collumns>
+      <Collumn StudentID="System.Int32" />
+      <Collumn Name="System.String" />
+    </Collumns>
+    <BinaryTree BalanceValue="2">
+      <Node id="0">
+        <Cells>
+          <Cell Value="0" />
+          <Cell Value="Josiah" />
+        </Cells>
+        <Left />
+        <Right>
+          <Node id="1">
+            <Cells>
+              <Cell Value="1" />
+              <Cell Value="Stan" />
+            </Cells>
+            <Left />
+            <Right />
+          </Node>
+        </Right>
+      </Node>
+    </BinaryTree>
+  </Table>
 </Tables>

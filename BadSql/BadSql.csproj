@@ -44,12 +44,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BinaryTree.cs" />
+    <Compile Include="ISqlInput.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="Opperations.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Range.cs" />
     <Compile Include="SqlCell.cs" />
     <Compile Include="SqlColumn.cs" />
+    <Compile Include="SqlCustomInput.cs" />
+    <Compile Include="SqlKeyWord.cs" />
     <Compile Include="SqlRow.cs" />
     <Compile Include="Student.cs" />
     <Compile Include="Table.cs" />
@@ -60,9 +64,17 @@
   <ItemGroup>
     <Content Include="SqlData.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>copy "$(TargetDir)SqlData.xml" ..\..\SqlData.xml</PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

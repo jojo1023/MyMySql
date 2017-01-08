@@ -9,145 +9,134 @@ namespace BadSql
 {
     class Program
     {
-        static int currentId = 0;
         static BinaryTree<Student> tree = new BinaryTree<Student>(2);
         static string xmlFile = "SqlData.xml";
         static XDocument xdoc = XDocument.Load(xmlFile);
         static Dictionary<string, Table> tables = new Dictionary<string, Table>();
+        static Dictionary<string, Range> keywords = new Dictionary<string, Range>();
+
         public static void Main(string[] args)
         {
-            LoadXML();
-            //Table testTable = new Table("Students", new SqlColumn("ID", typeof(int)),
-            //    new SqlColumn("StudentName", typeof(string)),
-            //    new SqlColumn("IsCool", typeof(bool)));
+            keywords.Add("select", new Range(0, int.MaxValue, false, true));
+            keywords.Add("from", new Range(1, 2, false, false));
+            keywords.Add("where", new Range(3, 4, false, false));
+            keywords.Add("insert", new Range(1, 2, false, false));
+            keywords.Add("into", new Range(1, 2, false, false));
+            keywords.Add("values", new Range(1, int.MaxValue, true, true));
+            keywords.Add("create", new Range(0, 1, false, false));
+            keywords.Add("table", new Range(1, int.MaxValue, true, false));
+            keywords.Add("delete", new Range(0, 1, false, false));
+            keywords.Add("sort", new Range(1, 2, false, false));
+            keywords.Add("drop", new Range(0, 1, false, false));
+            keywords.Add("update", new Range(1, 2, false, false));
+            keywords.Add("set", new Range(1, int.MaxValue, false, true));
 
-            //tables.Add("Students", testTable);
-            //DisplayRows(tables["Students"], tables["Students"].Select());
+            LoadXML();
             Random random = new Random();
-            List<string> input;
-            //testTable.AddRow(0, "Glen", false);
-            //testTable.AddRow(1, "Glen", false);
-            //testTable.AddRow(2, "Glen", true);
-            //testTable.AddRow(3, "Josiah", true);
-            //testTable.AddRow(4, "Josiah", true);
-            //testTable.AddRow(5, "Josiah", true);
-            //testTable.AddRow(6, "Josiah", true);
-            //testTable.AddRow(7, "Aaron", true);
-            //testTable.Sort();
+            List<SqlKeyWord> input;
 
             SqlColumn whereCollum;
             Opperations whereOpperation;
             IComparable whereValue;
             bool hasWhere;
+            Table table;
+            string originalInput;
+            tables.Add("Test", new Table("Test", new SqlColumn("ID", typeof(int)), new SqlColumn("Stuff", typeof(string))));
             do
             {
                 //input = Console.ReadLine().Split(' ');
-                input = Split(Console.ReadLine());
-                if (input.Count > 0)
+                string errors;
+                originalInput = Console.ReadLine();
+                //input = Split(originalInput, out errors);
+                input = Split2(originalInput, out errors);
+                if (input.Count > 0 && errors == "")
                 {
-                    switch (input[0].ToLower())
+                    switch (input[0].Input.ToLower())
                     {
-                        #region select
+                        #region Select
                         case ("select"):
-                            if (input.Count >= 4)
+                            if (input.Count >= 2)
                             {
                                 List<SqlColumn> collums = new List<SqlColumn>();
                                 whereCollum = null;
                                 whereOpperation = Opperations.EqualTo;
                                 whereValue = null;
-                                hasWhere = false;
-                                int fromIndex = 2;
-                                Table table = new Table("");
-                                if (input[1] == "*" && tables.ContainsKey(input[3]))
+                                bool whereWorked = false;
+                                table = null;
+                                SqlKeyWord select = input[0];
+                                SqlKeyWord from = input[1];
+                                if (from.Input.ToLower() != "from")
                                 {
-                                    table = tables[input[3]];
+                                    errors += "Incorect Use Of Select, ";
+                                    break;
+                                }
+                                if (select.Children.Count == 1 && isSqlKeyWord(KeyWordTypes.CommaGroup, select.Children[0]) && ((SqlKeyWord)select.Children[0]).Children.Count == 1 && ((SqlKeyWord)select.Children[0]).Children[0].Input == "*" && tables.ContainsKey(from.Children[0].Input))
+                                {
+                                    table = tables[from.Children[0].Input];
                                     collums = table.SqlColumns;
                                 }
-                                else
+                                else if (tables.ContainsKey(from.Children[0].Input))
+
                                 {
-                                    fromIndex = input.Count - 1;
-
-                                    List<string> stringCollumns = new List<string>();
-                                    for (int i = 1; i < input.Count; i++)
+                                    table = tables[from.Children[0].Input];
+                                    bool parseingError = false;
+                                    for (int i = 0; i < select.Children.Count; i++)
                                     {
-                                        if (input[i].ToLower() == "from")
+                                        if (isSqlKeyWord(KeyWordTypes.CommaGroup, select.Children[i]))
                                         {
-                                            if (tables.ContainsKey(input[i + 1]))
+                                            SqlKeyWord commaGroup = (SqlKeyWord)select.Children[i];
+                                            if (commaGroup.Children.Count == 1)
                                             {
-                                                fromIndex = i;
-
-                                                table = tables[input[i + 1]];
-                                                for (int j = 0; j < stringCollumns.Count; j++)
+                                                SqlColumn possibleCollumn = table[commaGroup.Children[0].Input];
+                                                if (possibleCollumn != null)
                                                 {
-                                                    SqlColumn currentColumn = table[stringCollumns[j]];
-                                                    if (currentColumn != null)
-                                                    {
-                                                        collums.Add(currentColumn);
-                                                    }
+                                                    collums.Add(possibleCollumn);
+                                                }
+                                                else
+                                                {
+                                                    errors += table.Name + " Table Doesn't Have the Collumn: " + commaGroup.Children[0].Input + ", ";
+                                                    parseingError = true;
+                                                    break;
                                                 }
                                             }
-                                            break;
+                                            else
+                                            {
+                                                errors += "Incorect Collumn Syntax, ";
+                                                parseingError = true;
+                                                break;
+                                            }
                                         }
                                         else
                                         {
-                                            stringCollumns.Add(input[i]);
+                                            errors += "Collumn Parseing Error, ";
+                                            parseingError = true;
+                                            break;
                                         }
                                     }
-                                }
-                                if (fromIndex != input.Count - 1 && table.Name != "")
-                                {
-                                    if (input.Count >= fromIndex + 5 && input[fromIndex + 2].ToLower() == "where")
+                                    if (parseingError)
                                     {
-                                        SqlColumn tempCollumn = table[input[fromIndex + 3]];
-
-                                        if (tempCollumn != null)
-                                        {
-                                            whereCollum = tempCollumn;
-                                            bool hasOpperation = true;
-                                            switch (input[fromIndex + 4])
-                                            {
-                                                case ("="):
-                                                    whereOpperation = Opperations.EqualTo;
-                                                    break;
-                                                case (">"):
-                                                    whereOpperation = Opperations.GreaterThan;
-                                                    break;
-                                                case ("<"):
-                                                    whereOpperation = Opperations.LessThan;
-                                                    break;
-                                                case (">="):
-                                                    whereOpperation = Opperations.GreaterThanOrEqualTo;
-                                                    break;
-                                                case ("<="):
-                                                    whereOpperation = Opperations.LessThanOrEqualTo;
-                                                    break;
-                                                case ("!="):
-                                                    whereOpperation = Opperations.NotEqualTo;
-                                                    break;
-                                                default:
-                                                    hasOpperation = false;
-                                                    break;
-                                            }
-                                            if (hasOpperation)
-                                            {
-                                                object compareValue = ((IConvertible)input[fromIndex + 5]).ToType(whereCollum.VarType, System.Globalization.CultureInfo.InvariantCulture);
-
-                                                if (compareValue is IComparable)
-                                                {
-                                                    whereValue = (IComparable)compareValue;
-                                                    hasWhere = true;
-                                                }
-                                            }
-                                        }
+                                        break;
                                     }
+
                                 }
                                 else
                                 {
+                                    errors += "Table Doesn't Exist, ";
                                     break;
+                                }
+                                if (input.Count >= 3)
+                                {
+                                    SqlKeyWord whereKeyWord = input[2];
+                                    whereWorked = GetWhereInfo(whereKeyWord, table, out whereCollum, out whereOpperation, out whereValue);
+                                    if (!whereWorked)
+                                    {
+                                        errors += "Incorect Where Syntax, ";
+                                        break;
+                                    }
                                 }
 
                                 List<SqlRow> rows;
-                                if (hasWhere)
+                                if (whereWorked)
                                 {
                                     rows = table.Select(whereCollum.Name, whereOpperation, whereValue);
                                 }
@@ -159,25 +148,52 @@ namespace BadSql
                             }
                             break;
                         #endregion
-                        #region insert
+                        //fix with new parseing
+                        #region Insert
                         case ("insert"):
-                            if (input.Count > 3)
+                            if (input.Count >= 2)
                             {
+                                SqlKeyWord Values = null;
+                                
+                                table = null;
+                                if (input.Count >= 3 && input[1].Input.ToLower() == "into" && input[2].Input.ToLower() == "values")
+                                {
+                                    if (tables.ContainsKey(input[1].Children[0].Input.ToLower()))
+                                    {
+                                        table = tables[input[1].Children[0].Input.ToLower()];
+                                        Values = input[2];
+                                    }
+                                    else
+                                    {
+                                        errors += "Table Doesn't Exist, ";
+                                        break;
+                                    }
+                                }
+                                else if (input[1].Input.ToLower() == "values")
+                                {
+                                    Values = input[1];
+                                }
+                                else
+                                {
+                                    errors += "Incorect Syntax Near Insert, ";
+                                    break;
+                                }
+
                                 bool correctSyntax = false;
                                 int tableIndex = 0;
-                                if (input[1].ToLower() == "into" && tables.ContainsKey(input[2]) && input[3].ToLower() == "values")
+                                if (input[1].Input.ToLower() == "into" && tables.ContainsKey(input[2].Input) && input[3].Input.ToLower() == "values")
                                 {
                                     tableIndex = 2;
                                     correctSyntax = true;
                                 }
-                                else if(tables.ContainsKey(input[1]) && input[2].ToLower() == "values")
+                                else if (tables.ContainsKey(input[1].Input) && input[2].Input.ToLower() == "values")
                                 {
                                     tableIndex = 1;
                                     correctSyntax = true;
                                 }
                                 if (correctSyntax)
                                 {
-                                    Table table = tables[input[tableIndex]];
+                                    table = tables[input[tableIndex].Input];
                                     if (input.Count >= table.SqlColumns.Count + tableIndex + 2)
                                     {
                                         bool legalValues = false;
@@ -188,9 +204,9 @@ namespace BadSql
                                             object compareValue = null;
                                             try
                                             {
-                                                compareValue = ((IConvertible)input[i]).ToType(currentCollumn.VarType, System.Globalization.CultureInfo.InvariantCulture);
+                                                compareValue = ((IConvertible)input[i].Input).ToType(currentCollumn.VarType, System.Globalization.CultureInfo.InvariantCulture);
                                             }
-                                            catch
+                                            catch (Exception e)
                                             {
                                                 break;
                                             }
@@ -214,19 +230,20 @@ namespace BadSql
                             }
                             break;
                         #endregion
+                        //fix with new parseing
                         #region CreateTable
                         case ("create"):
-                            if (input.Count >= 5 && input[1].ToLower() == "table")
+                            if (input.Count >= 5 && input[1].Input.ToLower() == "table")
                             {
-                                string tableName = input[2];
+                                string tableName = input[2].Input;
                                 bool typesParsed = true;
                                 List<SqlColumn> newTableCollumns = new List<SqlColumn>();
                                 for (int i = 4; i < input.Count; i += 2)
                                 {
-                                    Type collumnType = Type.GetType(input[i]);
+                                    Type collumnType = Type.GetType(input[i].Input);
                                     if (collumnType != null)
                                     {
-                                        newTableCollumns.Add(new SqlColumn(input[i - 1], collumnType));
+                                        newTableCollumns.Add(new SqlColumn(input[i - 1].Input, collumnType));
                                     }
                                     else
                                     {
@@ -242,26 +259,27 @@ namespace BadSql
                             }
                             break;
                         #endregion
+                        //fix with new parseing
                         #region Delete
                         case ("delete"):
                             whereCollum = null;
                             whereOpperation = Opperations.EqualTo;
                             whereValue = null;
                             hasWhere = false;
-                            if (input.Count >= 3 && input[1].ToLower() == "from" && tables.ContainsKey(input[2]))
+                            if (input.Count >= 3 && input[1].Input.ToLower() == "from" && tables.ContainsKey(input[2].Input))
                             {
-                                Table table = tables[input[2]];
+                                table = tables[input[2].Input];
                                 if (table.Name != "")
                                 {
-                                    if (input.Count >= 6 && input[3].ToLower() == "where")
+                                    if (input.Count >= 6 && input[3].Input.ToLower() == "where")
                                     {
-                                        SqlColumn tempCollumn = table[input[4]];
+                                        SqlColumn tempCollumn = table[input[4].Input];
 
                                         if (tempCollumn != null)
                                         {
                                             whereCollum = tempCollumn;
                                             bool hasOpperation = true;
-                                            switch (input[5])
+                                            switch (input[5].Input)
                                             {
                                                 case ("="):
                                                     whereOpperation = Opperations.EqualTo;
@@ -287,7 +305,7 @@ namespace BadSql
                                             }
                                             if (hasOpperation)
                                             {
-                                                object compareValue = ((IConvertible)input[6]).ToType(whereCollum.VarType, System.Globalization.CultureInfo.InvariantCulture);
+                                                object compareValue = ((IConvertible)input[6].Input).ToType(whereCollum.VarType, System.Globalization.CultureInfo.InvariantCulture);
 
                                                 if (compareValue is IComparable)
                                                 {
@@ -311,55 +329,76 @@ namespace BadSql
                             }
                             break;
                         #endregion
+
                         #region Sort
                         case ("sort"):
-                            if (input.Count >= 2 && tables.ContainsKey(input[1]))
+                            if (tables.ContainsKey(input[0].Children[0].Input))
                             {
-                                Table table = tables[input[1]];
+                                table = tables[input[0].Children[0].Input];
                                 table.Sort();
                                 Console.WriteLine("Table Sorted");
                             }
-                            break;
-                        #endregion
-                        #region Drop Table
-                        case ("drop"):
-                            if (input.Count >= 3 && input[1].ToLower() == "table" && tables.ContainsKey(input[2]))
+                            else
                             {
-                                tables.Remove(input[2]);
-                                Console.WriteLine("1 Table Droped");
+                                errors += "Table Doesn't Exist, ";
                             }
                             break;
                         #endregion
+
+                        #region Drop Table
+                        case ("drop"):
+                            if (input.Count >= 2)
+                            {
+                                if (input[1].Input.ToLower() == "table" && input[1].Children.Count == 1)
+                                {
+                                    if (tables.ContainsKey(input[1].Children[0].Input))
+                                    {
+                                        tables.Remove(input[1].Children[0].Input);
+                                        Console.WriteLine("1 Table Droped");
+                                    }
+                                    else
+                                    {
+                                        errors += "Table Doesn't Exist, ";
+                                    }
+                                }
+                                else
+                                {
+                                    errors += "Incorrect Syntax Near Table, ";
+                                }
+                            }
+                            break;
+                        #endregion
+                        //fix with new parseing
                         #region Update
                         case ("update"):
                             whereCollum = null;
                             whereOpperation = Opperations.EqualTo;
                             whereValue = null;
                             hasWhere = false;
-                            if (input.Count >= 5 && tables.ContainsKey(input[1]))
+                            if (input.Count >= 5 && tables.ContainsKey(input[1].Input))
                             {
-                                Table table = tables[input[1]];
-                                if (input[2].ToLower() == "set")
+                                table = tables[input[1].Input];
+                                if (input[2].Input.ToLower() == "set")
                                 {
-                                    SqlColumn collumnToSet = table[input[3]];
+                                    SqlColumn collumnToSet = table[input[3].Input];
                                     if (collumnToSet != null)
                                     {
-                                        object valueObject = ((IConvertible)input[4]).ToType(collumnToSet.VarType, System.Globalization.CultureInfo.InvariantCulture);
+                                        object valueObject = ((IConvertible)input[4].Input).ToType(collumnToSet.VarType, System.Globalization.CultureInfo.InvariantCulture);
 
                                         if (valueObject is IComparable)
                                         {
                                             IComparable value = (IComparable)valueObject;
 
                                             //where logic
-                                            if (input.Count >= 9 && input[5].ToLower() == "where")
+                                            if (input.Count >= 9 && input[5].Input.ToLower() == "where")
                                             {
-                                                SqlColumn tempCollumn = table[input[6]];
+                                                SqlColumn tempCollumn = table[input[6].Input];
 
                                                 if (tempCollumn != null)
                                                 {
                                                     whereCollum = tempCollumn;
                                                     bool hasOpperation = true;
-                                                    switch (input[7])
+                                                    switch (input[7].Input)
                                                     {
                                                         case ("="):
                                                             whereOpperation = Opperations.EqualTo;
@@ -385,7 +424,7 @@ namespace BadSql
                                                     }
                                                     if (hasOpperation)
                                                     {
-                                                        object compareValue = ((IConvertible)input[8]).ToType(whereCollum.VarType, System.Globalization.CultureInfo.InvariantCulture);
+                                                        object compareValue = ((IConvertible)input[8].Input).ToType(whereCollum.VarType, System.Globalization.CultureInfo.InvariantCulture);
 
                                                         if (compareValue is IComparable)
                                                         {
@@ -411,280 +450,728 @@ namespace BadSql
                                 }
                             }
                             break;
-                            #endregion
-                            #region oldStuff
-                            //case ("AddStudent"):
-                            //    int age;
-                            //    if (input.Length > 4 && int.TryParse(input[3], out age))
-                            //    {
-                            //        AddStudent(input[1], input[2], age, input[4]);
-                            //    }
-                            //    break;
-                            //case ("DeleteStudent"):
-                            //    int id;
-                            //    if (input.Length > 1 && int.TryParse(input[1], out id))
-                            //    {
-                            //        DeleteStudent(id);
-                            //    }
-                            //    break;
-                            //case ("ViewStudents"):
-                            //    ViewStudents();
-                            //    break;
-                            //case ("BreakTree"):
-                            //    for (double i = 0; i < 50000; i++)
-                            //    {
-                            //        tree.AddNode(new Student(currentId, "Josiah", "Ross", 15, "stuff"));
-                            //        currentId++;
-                            //        if (i % 1000 == 0)
-                            //        {
-                            //            Console.WriteLine(currentId);
-                            //        }
-                            //    }
-                            //    break;
-                            //case ("Sort"):
-
-                            //    //sw.Restart();
-                            //    //for (int i = 0; i < 2000; i++)
-                            //    //{
-                            //    //    tree.AddNode(new Student(currentId, "bob", "smith", 5, "bob@bob.com"));
-                            //    //    currentId++;
-                            //    //}
-                            //    List<Student> sortedList = sort(tree.GetNodes());
-                            //    List<Student> balanceList = balanceSort(sortedList, new List<Student>());
-
-
-                            //    tree.BaseNode = null;
-                            //    for (int i = 0; i < balanceList.Count; i++)
-                            //    {
-                            //        tree.AddNode(balanceList[i]);
-                            //    }
-
-                            //    //Console.WriteLine(sw.ElapsedMilliseconds);
-                            //    break;
-
-                            //case ("TestSelect"):
-
-                            //    for (int i = 0; i < 20; i++)
-                            //    {
-                            //        testTable.AddRow("Josiah");
-                            //    }
-
-                            //    testTable.Sort();
-
-                            //    List<SqlRow> rows = testTable.Select();
-
-                            //    for (int i = 0; i < rows.Count; i++)
-                            //    {
-                            //        Console.Write("ID: " + rows[i].Id.ToString());
-
-                            //        for (int j = 0; j < rows[i].Cells.Count; j++)
-                            //        {
-                            //            Console.Write(", " + rows[i].OwningTable.SqlColumns[j].Name + ": " + rows[i].Cells[j].Value.ToString());
-                            //        }
-                            //        Console.WriteLine();
-                            //    }
-                            //    break;
+                        #endregion
+                        #region Default
+                        default:
+                            errors += input[0].Input + " is Not a Starting Command, ";
+                            break;
                             #endregion
                     }
                 }
-            } while (input[0] != "Exit");
+                if (errors.Length > 2)
+                {
+                    errors = errors.Remove(errors.Length - 2, 2);
+                    Console.WriteLine(errors);
+                }
+            } while (originalInput.ToLower() != "exit");
             SaveXML();
         }
-        #region oldStuff
-        //    public static void AddStudent(string firstName, string lastName, int age, string email)
-        //    {
-        //        tree.AddNode(new Student(currentId, firstName, lastName, age, email));
-        //        Console.WriteLine("Id: " + currentId);
-        //        currentId++;
-        //    }
-        //    public static void DeleteStudent(int id)
-        //    {
-        //        tree.UserDelete(new Student(id));
-        //    }
-        //    public static void ViewStudents()
-        //    {
-        //        List<Student> students = tree.GetNodes();
-        //        foreach (Student student in students)
-        //        {
-        //            Console.WriteLine("Id: " + student.Id + " Name: " + student.FirstName + " " + student.LastName + " Age: " + student.Age + " Email: " + student.Email);
-        //        }
-        //    }
-        //    public static List<Student> sort(List<Student> input)
-        //    {
-        //        List<Student> returnList = new List<Student>();
-        //        while (input.Count > 0)
-        //        {
-        //            returnList = insert(input[input.Count - 1], returnList);
-        //            input.Remove(input[input.Count - 1]);
-        //        }
-        //        return returnList;
-        //    }
-
-        //    public static List<Student> balanceSort(List<Student> sortedList, List<Student> currentList)
-        //    {
-        //        if (sortedList.Count > 0)
-        //        {
-        //            List<List<Student>> nextLists = new List<List<Student>>();
-        //            if (sortedList.Count % 2 == 0)
-        //            {
-        //                currentList.Add(sortedList[sortedList.Count / 2 - 1]);
-        //                sortedList.RemoveAt(sortedList.Count / 2 - 1);
-
-        //                nextLists.Add(sortedList.Take((sortedList.Count + 1) / 2 - 1).ToList());
-        //                nextLists.Add(sortedList.Skip((sortedList.Count + 1) / 2 - 1).ToList());
-        //            }
-        //            else
-        //            {
-        //                currentList.Add(sortedList[(sortedList.Count + 1) / 2 - 1]);
-        //                sortedList.RemoveAt((sortedList.Count + 1) / 2 - 1);
-
-        //                nextLists.Add(sortedList.Take(sortedList.Count / 2 - 1).ToList());
-        //                nextLists.Add(sortedList.Skip(sortedList.Count / 2 - 1).ToList());
-        //            }
-        //            foreach (List<Student> list in nextLists)
-        //            {
-        //                currentList = (balanceSort(list, currentList));
-        //            }
-        //        }
-        //        return currentList;
-        //    }
-
-
-
-        //    public static List<Student> insert(Student number, List<Student> input)
-        //    {
-        //        List<Student> returnList = input;
-        //        bool added = false;
-        //        for (int i = 0; i < returnList.Count; i++)
-        //        {
-        //            if (number.Id <= returnList[i].Id)
-        //            {
-        //                added = true;
-        //                Student previousNum = number;
-        //                for (int j = i; j < returnList.Count; j++)
-        //                {
-        //                    Student temp = returnList[j];
-        //                    returnList[j] = previousNum;
-        //                    previousNum = temp;
-        //                }
-        //                returnList.Add(previousNum);
-        //                break;
-        //            }
-        //        }
-        //        if (!added)
-        //        {
-        //            returnList.Add(number);
-        //        }
-        //        return returnList;
-        //    }
-        #endregion
-        public static List<string> Split(string input)
+        public static bool GetWhereInfo(SqlKeyWord WhereKeyWord, Table table, out SqlColumn whereCollum, out Opperations whereOpperation, out IComparable whereValue)
         {
-            bool inParentheses = false;
-            bool inQuotes = false;
-            List<string> returnList = new List<string>();
-            int lastCut = 0;
-            string currentValue = "";
-            string newInput;
-            for (int i = 0; i < input.Length; i++)
+            whereCollum = null;
+            whereOpperation = Opperations.EqualTo;
+            whereValue = null;
+            bool whereWorks = false;
+            if (WhereKeyWord.Input.ToLower() == "where" && WhereKeyWord.Children.Count >= 3)
             {
-                if (!inQuotes)
+                SqlColumn tempCollumn = table[WhereKeyWord.Children[0].Input];
+
+                if (tempCollumn != null)
                 {
-                    if (!inParentheses)
+                    whereCollum = tempCollumn;
+                    bool hasOpperation = true;
+                    switch (WhereKeyWord.Children[1].Input)
                     {
-                        if (input[i] == ' ')
-                        {
-                            newInput = input.Substring(lastCut, i - lastCut);
-                            if (newInput.Trim() != "")
-                            {
-                                returnList.Add(newInput);
-                            }
-                            lastCut = i + 1;
-                        }
-                        if (input[i] == '(')
-                        {
-                            newInput = input.Substring(lastCut, i - lastCut);
-                            if (newInput.Trim() != "")
-                            {
-                                returnList.Add(newInput);
-                            }
-                            lastCut = i + 1;
-                            currentValue = "";
-                            inParentheses = true;
-                        }
-                        if (input[i] == '"')
-                        {
-                            inQuotes = true;
-                            currentValue = "";
-                        }
+                        case ("="):
+                            whereOpperation = Opperations.EqualTo;
+                            break;
+                        case (">"):
+                            whereOpperation = Opperations.GreaterThan;
+                            break;
+                        case ("<"):
+                            whereOpperation = Opperations.LessThan;
+                            break;
+                        case (">="):
+                            whereOpperation = Opperations.GreaterThanOrEqualTo;
+                            break;
+                        case ("<="):
+                            whereOpperation = Opperations.LessThanOrEqualTo;
+                            break;
+                        case ("!="):
+                            whereOpperation = Opperations.NotEqualTo;
+                            break;
+                        default:
+                            hasOpperation = false;
+                            break;
                     }
-                    else
+                    if (hasOpperation)
                     {
+                        object compareValue = ((IConvertible)WhereKeyWord.Children[2].Input).ToType(whereCollum.VarType, System.Globalization.CultureInfo.InvariantCulture);
 
-                        if (input[i] != ' ')
+                        if (compareValue is IComparable)
                         {
-
-                            if (input[i] == '"')
-                            {
-                                inQuotes = true;
-                                currentValue = "";
-                            }
-                            else
-                            {
-                                if (input[i] == ')')
-                                {
-                                    lastCut = i + 1;
-                                    if (currentValue.Trim() != "")
-                                    {
-                                        returnList.Add(currentValue);
-                                    }
-                                    currentValue = "";
-                                    inParentheses = false;
-                                }
-                                else
-                                {
-                                    if (input[i] == ',')
-                                    {
-                                        if (currentValue.Trim() != "")
-                                        {
-                                            returnList.Add(currentValue);
-                                        }
-                                        currentValue = "";
-                                    }
-                                    else
-                                    {
-                                        currentValue += input[i];
-                                    }
-                                }
-                            }
-
+                            whereValue = (IComparable)compareValue;
+                            whereWorks = true;
                         }
-
-                    }
-                }
-                else
-                {
-                    if (input[i] == '"')
-                    {
-                        lastCut = i + 1;
-                        inQuotes = false;
-
-                        if (currentValue.Trim() != "")
-                        {
-                            returnList.Add(currentValue);
-                        }
-                        currentValue = "";
-                    }
-                    else
-                    {
-                        currentValue += input[i];
                     }
                 }
             }
-            newInput = input.Substring(lastCut, input.Length - lastCut);
-            if (newInput != "")
+
+            return whereWorks;
+        }
+
+        public static bool isSqlKeyWord(KeyWordTypes keyWordType, ISqlInput possibleKeyWord)
+        {
+            return possibleKeyWord.GetType() == typeof(SqlKeyWord) && keyWordType == ((SqlKeyWord)possibleKeyWord).KeyWordType;
+        }
+
+        //public static List<SqlKeyWord> Split(string input, out string errors)
+        //{
+        //    List<SqlKeyWord> returnList = new List<SqlKeyWord>();
+        //    errors = "";
+        //    int startOfWord = 0;
+        //    int amountOfParentheses = 0;
+        //    for (int i = 0; i < input.Length; i++)
+        //    {
+        //        if (input[i] == ' ')
+        //        {
+        //            string newSqlInput = input.Substring(startOfWord, i - startOfWord);
+        //            if (keywords.Keys.Contains(newSqlInput.ToLower()))
+        //            {
+        //                SqlKeyWord newKeyWord = new SqlKeyWord(newSqlInput, null, keywords[newSqlInput.ToLower()]);
+        //                SqlKeyWord nextKeyWord;
+        //                newKeyWord.Children = GetKeyWordChildren(newKeyWord, input, i, false, amountOfParentheses, out amountOfParentheses, out i, out errors, out nextKeyWord);
+        //                returnList.Add(newKeyWord);
+        //                returnList = GetBottomKeyWords(nextKeyWord, input, i, amountOfParentheses, returnList, errors, out i, out amountOfParentheses, out errors);
+        //                startOfWord = i;
+        //            }
+        //        }
+        //        else if (input[i] == '(')
+        //        {
+        //            string newSqlInput = input.Substring(startOfWord, i - startOfWord);
+        //            if (keywords.Keys.Contains(newSqlInput.ToLower()))
+        //            {
+        //                SqlKeyWord newKeyWord = new SqlKeyWord(newSqlInput, null, keywords[newSqlInput.ToLower()]);
+        //                SqlKeyWord nextKeyWord;
+        //                newKeyWord.Children = GetKeyWordChildren(newKeyWord, input, i, false, amountOfParentheses, out amountOfParentheses, out i, out errors, out nextKeyWord);
+        //                returnList.Add(newKeyWord);
+        //                returnList = GetBottomKeyWords(nextKeyWord, input, i, amountOfParentheses, returnList, errors, out i, out amountOfParentheses, out errors);
+        //                startOfWord = i;
+        //            }
+        //        }
+        //        //else if (input[i] == '"')
+        //        //{
+        //        //}
+        //    }
+
+        //    if (amountOfParentheses != 0)
+        //    {
+        //        errors += "Incorect Parentheses Syntax, ";
+        //    }
+        //    return returnList;
+        //}
+
+        //public static List<SqlKeyWord> GetBottomKeyWords(SqlKeyWord nextKeyWord, string input, int currentIndex, int amountOfParenthesesIn, List<SqlKeyWord> currentList, string errorsIn, out int newIndex, out int amountOfParentheses, out string errors)
+        //{
+        //    newIndex = currentIndex;
+        //    amountOfParentheses = amountOfParenthesesIn;
+        //    errors = errorsIn;
+        //    if (nextKeyWord != null)
+        //    {
+        //        SqlKeyWord newNextKeyWord;
+        //        nextKeyWord.Children = GetKeyWordChildren(nextKeyWord, input, currentIndex, false, amountOfParenthesesIn, out amountOfParentheses, out newIndex, out errors, out newNextKeyWord);
+        //        currentList.Add(nextKeyWord);
+
+        //        if (newNextKeyWord != null)
+        //        {
+        //            currentList = GetBottomKeyWords(newNextKeyWord, input, newIndex, amountOfParentheses, currentList, errors, out newIndex, out amountOfParentheses, out errors);
+        //        }
+        //    }
+        //    return currentList;
+        //}
+
+        //public static List<ISqlInput> GetKeyWordChildren(SqlKeyWord keyWord, string input, int currentIndex, bool inParenthesesGroup, int amountOfParenthesesIn, out int amountOfParentheses, out int newIndex, out string errors, out SqlKeyWord nextKeyWord)
+        //{
+        //    List<ISqlInput> returnList = new List<ISqlInput>();
+        //    bool inQuotes = false;
+        //    bool justInQuotes = false;
+        //    amountOfParentheses = amountOfParenthesesIn;
+        //    errors = "";
+        //    nextKeyWord = null;
+        //    string currentWord = "";
+        //    newIndex = currentIndex;
+        //    bool justHadComma = false;
+        //    string currentSpaceWord = "";
+        //    string lastSpaceWord = "";
+        //    bool addToCurrentSpaceWord = false;
+        //    for (int i = currentIndex; i < input.Length; i++)
+        //    {
+        //        if (!inQuotes)
+        //        {
+        //            if (input[i] != ' ')
+        //            {
+
+        //                if (input[i] == '"')
+        //                {
+        //                    if (currentWord == "")
+        //                    {
+        //                        inQuotes = true;
+        //                        justInQuotes = true;
+        //                    }
+        //                    else
+        //                    {
+        //                        errors += "Incorect Quote Syntax, ";
+        //                        newIndex = i + 1;
+        //                        break;
+        //                    }
+        //                }
+        //                else if (input[i] == ',' || input[i] == ')' || input[i] == '(' || input[i] == '=' || input[i] == '!' || input[i] == '<' || input[i] == '>')
+        //                {
+        //                    #region addCurrentWord
+        //                    //bool isOpenParen = false;
+
+        //                    //if (input[i] == '(')
+        //                    //{
+        //                    //    amountOfParentheses++;
+        //                    //    isOpenParen = true;
+        //                    //}
+        //                    //if (input[i] == ')')
+        //                    //{
+        //                    //    amountOfParentheses--;
+        //                    //}
+
+        //                    //if (currentWord != "")
+        //                    //{
+        //                    //    justHadComma = true;
+        //                    //    if (returnList.Count + 1 >= keyWord.ChildrenAmountRange.Max)
+        //                    //    {
+        //                    //        errors += "Incorect Use of " + keyWord.Input + ", ";
+        //                    //        newIndex = i + 1;
+        //                    //        break;
+        //                    //    }
+        //                    //    else
+        //                    //    {
+        //                    //        if (!justInQuotes && keywords.ContainsKey(currentWord.ToLower()))
+        //                    //        {
+        //                    //            newKeyWord = new SqlKeyWord(currentWord, keyWord, keywords[currentWord.ToLower()]);
+
+        //                    //            if (!isOpenParen)
+        //                    //            {
+        //                    //                newKeyWord.Children = GetKeyWordChildren(newKeyWord, input, i + 1, false, amountOfParentheses, out amountOfParentheses, out i, out errors);
+
+        //                    //                returnList.Add(newKeyWord);
+        //                    //                if (i >= input.Length)
+        //                    //                {
+        //                    //                    newIndex = i;
+        //                    //                    break;
+        //                    //                }
+        //                    //            }
+        //                    //        }
+        //                    //        else
+        //                    //        {
+        //                    //            returnList.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+        //                    //            justInQuotes = false;
+        //                    //        }
+        //                    //    }
+
+        //                    //    if (input[i] == ')')
+        //                    //    {
+        //                    //        if (inParenthesesGroup)
+        //                    //        {
+        //                    //            newIndex = i + 1;
+        //                    //            break;
+        //                    //        }
+        //                    //    }
+        //                    //    currentWord = "";
+        //                    //}
+
+
+        //                    //if (isOpenParen)
+        //                    //{
+        //                    //    if (newKeyWord == null)
+        //                    //    {
+        //                    //        SqlKeyWord openParenKeyWord = new SqlKeyWord("ParenthesesGroup", keyWord, new Range(0, int.MaxValue));
+        //                    //        openParenKeyWord.Children = GetKeyWordChildren(openParenKeyWord, input, i + 1, true, amountOfParentheses, out amountOfParentheses, out i, out errors);
+        //                    //        returnList.Add(openParenKeyWord);
+        //                    //        if (i >= input.Length)
+        //                    //        {
+        //                    //            newIndex = i;
+        //                    //            break;
+        //                    //        }
+        //                    //    }
+        //                    //    else
+        //                    //    {
+        //                    //        SqlKeyWord openParenKeyWord = new SqlKeyWord("ParenthesesGroup", newKeyWord, new Range(0, int.MaxValue));
+        //                    //        openParenKeyWord.Children = GetKeyWordChildren(openParenKeyWord, input, i + 1, true, amountOfParentheses, out amountOfParentheses, out i, out errors);
+        //                    //        newKeyWord.Children.Add(openParenKeyWord);
+        //                    //        if (i >= input.Length)
+        //                    //        {
+        //                    //            returnList.Add(newKeyWord);
+        //                    //            newIndex = i;
+        //                    //            break;
+        //                    //        }
+        //                    //        newKeyWord.Children.AddRange(GetKeyWordChildren(newKeyWord, input, i + 1, false, amountOfParentheses, out amountOfParentheses, out i, out errors));
+
+        //                    //        returnList.Add(newKeyWord);
+        //                    //        if (i >= input.Length)
+        //                    //        {
+        //                    //            newIndex = i;
+        //                    //            break;
+        //                    //        }
+        //                    //    }
+        //                    //}
+        //                    #endregion
+
+        //                    if (input[i] == '=' || input[i] == '!' || input[i] == '<' || input[i] == '>')
+        //                    {
+        //                        justHadComma = false;
+        //                    }
+
+        //                    bool currentInputParentheses = false;
+        //                    if (input[i] == '(')
+        //                    {
+        //                        amountOfParentheses++;
+        //                        currentInputParentheses = true;
+        //                    }
+        //                    if (input[i] == ')')
+        //                    {
+        //                        amountOfParentheses--;
+        //                        currentInputParentheses = true;
+        //                    }
+        //                    if (currentWord.Trim() != "")
+        //                    {
+        //                        if (keywords.ContainsKey(currentWord.ToLower()) && !justInQuotes)
+        //                        {
+        //                            if ((currentInputParentheses && keyWord.ChildrenAmountRange.CanHaveParentheses) || !currentInputParentheses)
+        //                            {
+        //                                nextKeyWord = new SqlKeyWord(currentWord, keyWord.Parent, keywords[currentWord.ToLower()]);
+        //                                newIndex = i + 1;
+        //                                break;
+        //                            }
+        //                            else
+        //                            {
+        //                                errors += "Incorect Use of " + keyWord.Input + ", ";
+        //                                newIndex = i + 1;
+        //                                break;
+        //                            }
+        //                        }
+        //                        else if (addToCurrentSpaceWord && currentSpaceWord.Trim() != "" && keywords.ContainsKey(currentSpaceWord.ToLower()))
+        //                        {
+        //                            SqlKeyWord possibleNextKeyWord = new SqlKeyWord(currentSpaceWord, keyWord.Parent, keywords[currentSpaceWord.ToLower()]);
+        //                            currentSpaceWord = "";
+        //                            addToCurrentSpaceWord = false;
+        //                            if ((currentInputParentheses && possibleNextKeyWord.ChildrenAmountRange.CanHaveParentheses) || !currentInputParentheses)
+        //                            {
+        //                                if (lastSpaceWord.Trim() != "")
+        //                                {
+        //                                    returnList.Add(new SqlCustomInput(lastSpaceWord, keyWord, justInQuotes));
+        //                                    lastSpaceWord = "";
+        //                                }
+        //                                nextKeyWord = possibleNextKeyWord;
+        //                                newIndex = i + 1;
+        //                                break;
+        //                            }
+        //                            else
+        //                            {
+        //                                errors += "Incorect Use of " + possibleNextKeyWord.Input + ", ";
+        //                                newIndex = i + 1;
+        //                                break;
+        //                            }
+        //                        }
+        //                        else
+        //                        {
+        //                            if (returnList.Count + 1 + keyWord.Children.Count >= keyWord.ChildrenAmountRange.Max)
+        //                            {
+        //                                errors += "Incorect Use of " + keyWord.Input + ", ";
+        //                                newIndex = i + 1;
+        //                                break;
+        //                            }
+        //                            else
+        //                            {
+        //                                returnList.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+        //                                currentWord = "";
+        //                                currentSpaceWord = "";
+        //                                addToCurrentSpaceWord = false;
+        //                            }
+
+        //                        }
+
+        //                        justInQuotes = false;
+        //                    }
+        //                    justHadComma = true;
+        //                }
+        //            }
+        //            else if (input[i] == ' ')
+        //            {
+        //                if (addToCurrentSpaceWord && currentSpaceWord.Trim() != "" && keywords.ContainsKey(currentSpaceWord.ToLower()))
+        //                {
+        //                    SqlKeyWord possibleNextKeyWord = new SqlKeyWord(currentSpaceWord, keyWord.Parent, keywords[currentSpaceWord.ToLower()]);
+        //                    if (lastSpaceWord.Trim() != "")
+        //                    {
+        //                        returnList.Add(new SqlCustomInput(lastSpaceWord, keyWord, justInQuotes));
+        //                    }
+        //                    nextKeyWord = possibleNextKeyWord;
+        //                    newIndex = i + 1;
+        //                    break;
+        //                }
+        //                lastSpaceWord = currentWord;
+        //                currentSpaceWord = "";
+        //                addToCurrentSpaceWord = true;
+        //            }
+        //            if (input[i] != ' ' && input[i] != ',' && input[i] != ')' && input[i] != '(')
+        //            {
+        //                if (addToCurrentSpaceWord)
+        //                {
+        //                    currentSpaceWord += input[i];
+        //                }
+        //                currentWord += input[i];
+        //            }
+        //        }
+
+        //        else
+        //        {
+        //            if (input[i] == '"')
+        //            {
+        //                inQuotes = false;
+        //            }
+        //            else
+        //            {
+        //                currentWord += input[i];
+        //            }
+        //        }
+
+        //        if (i + 1 >= input.Length)
+        //        {
+        //            newIndex = i + 1;
+        //            if (returnList.Count + 1 >= keyWord.ChildrenAmountRange.Max)
+        //            {
+        //                errors += "Incorect Use of " + keyWord.Input + ", ";
+        //                break;
+        //            }
+        //            else
+        //            {
+        //                if (currentWord != "")
+        //                {
+        //                    returnList.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+        //                    justInQuotes = false;
+        //                }
+        //            }
+        //        }
+        //    }
+        //    if (inQuotes)
+        //    {
+        //        errors += "Incorect Quote Syntax, ";
+        //    }
+        //    if (returnList.Count < keyWord.ChildrenAmountRange.Min)
+        //    {
+        //        errors += "Incorect Use of " + keyWord.Input + ", ";
+        //    }
+        //    return returnList;
+        //}
+
+
+        public static List<SqlKeyWord> Split2(string input, out string errors)
+        {
+            List<SqlKeyWord> returnList = new List<SqlKeyWord>();
+            errors = "";
+            string currentWord = "";
+            int amountOfParentheses = 0;
+            for (int i = 0; i < input.Length; i++)
             {
-                returnList.Add(newInput);
+                if (input[i] == ' ' || input[i] == '(')
+                {
+                    if (input[i] == '(')
+                    {
+                        amountOfParentheses++;
+                    }
+                    if (keywords.ContainsKey(currentWord.ToLower()))
+                    {
+                        SqlKeyWord keyWord = new SqlKeyWord(currentWord, null, keywords[currentWord.ToLower()], KeyWordTypes.Command);
+                        SqlKeyWord nextKeyWord;
+                        keyWord.Children = GetKeyWordChildren2(keyWord, input, i, amountOfParentheses, new List<ISqlInput>(), out amountOfParentheses, out i, out errors, out nextKeyWord);
+                        returnList.Add(keyWord);
+                        returnList = GetBottomKeyWords2(nextKeyWord, input, i, amountOfParentheses, returnList, errors, out i, out amountOfParentheses, out errors);
+                        break;
+                    }
+                    else
+                    {
+                        errors += "Incorrect Use of" + currentWord + ", ";
+                        break;
+                    }
+                }
+                else if (input[i] == '"')
+                {
+                    errors += "Incorrect Quote Syntax, ";
+                    break;
+                }
+                else if (input[i] == ')')
+                {
+                    errors += "Incorrect Parentheses Syntax, ";
+                    break;
+                }
+                else if (input[i] == ',')
+                {
+                    errors += "Incorrect Comma Syntax, ";
+                    break;
+                }
+                else
+                {
+                    currentWord += input[i];
+                }
+            }
+
+            if (amountOfParentheses != 0)
+            {
+                errors += "Incorrect Parentheses Syntax, ";
+            }
+
+            return returnList;
+        }
+
+        public static List<SqlKeyWord> GetBottomKeyWords2(SqlKeyWord nextKeyWord, string input, int currentIndex, int amountOfParenthesesIn, List<SqlKeyWord> currentList, string errorsIn, out int newIndex, out int amountOfParentheses, out string errors)
+        {
+            newIndex = currentIndex;
+            amountOfParentheses = amountOfParenthesesIn;
+            errors = errorsIn;
+            if (nextKeyWord != null)
+            {
+                SqlKeyWord newNextKeyWord;
+                nextKeyWord.Children = GetKeyWordChildren2(nextKeyWord, input, currentIndex, amountOfParenthesesIn, new List<ISqlInput>(), out amountOfParentheses, out newIndex, out errors, out newNextKeyWord);
+                currentList.Add(nextKeyWord);
+
+                if (newNextKeyWord != null)
+                {
+                    currentList = GetBottomKeyWords2(newNextKeyWord, input, newIndex, amountOfParentheses, currentList, errors, out newIndex, out amountOfParentheses, out errors);
+                }
+            }
+            return currentList;
+        }
+
+        public static List<ISqlInput> GetKeyWordChildren2(SqlKeyWord keyWord, string input, int currentIndex, int amountOfParenthesesIn, List<ISqlInput> currentList, out int amountOfParentheses, out int newIndex, out string errors, out SqlKeyWord nextKeyWord)
+        {
+            List<ISqlInput> returnList = currentList;
+
+            amountOfParentheses = amountOfParenthesesIn;
+            newIndex = currentIndex;
+            errors = "";
+            nextKeyWord = null;
+            bool inQuotes = false;
+            string currentWord = "";
+            bool justInQuotes = false;
+            bool justHadComma = false;
+            SqlKeyWord commaGroup = new SqlKeyWord("CommaGroup", keyWord, new Range(1, int.MaxValue, false, false), KeyWordTypes.CommaGroup);
+            for (int i = currentIndex; i < input.Length; i++)
+            {
+                newIndex = i;
+                if (!inQuotes)
+                {
+                    if (input[i] == '"')
+                    {
+                        if (currentWord.Trim() == "")
+                        {
+                            inQuotes = true;
+                            currentWord = "";
+                        }
+                        else
+                        {
+                            errors += "Incorect Quote Syntax, ";
+                            break;
+                        }
+                    }
+                    else if (input[i] == '(')
+                    {
+                        amountOfParentheses++;
+                        if (keyWord.ChildrenAmountRange.CanHaveParentheses && !justInQuotes)
+                        {
+                            if (currentWord.Trim() != "")
+                            {
+                                if (keywords.ContainsKey(currentWord.ToLower()))
+                                {
+                                    if (keyWord.ChildrenAmountRange.CanHaveCommas && commaGroup.Children.Count > 0)
+                                    {
+                                        returnList.Add(commaGroup);
+                                    }
+                                    nextKeyWord = new SqlKeyWord(currentWord, keyWord.Parent, keywords[currentWord.ToLower()], KeyWordTypes.Command);
+                                    break;
+                                }
+                                else
+                                {
+                                    if (keyWord.ChildrenAmountRange.CanHaveCommas)
+                                    {
+                                        commaGroup.Children.Add(new SqlCustomInput(currentWord, commaGroup, justInQuotes));
+                                        returnList.Add(commaGroup);
+                                    }
+                                    else
+                                    {
+                                        returnList.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+                                    }
+                                }
+                            }
+
+                            SqlKeyWord newParenthesesGroup = new SqlKeyWord("ParenthesesGroup", keyWord, new Range(1, int.MaxValue, false, true), KeyWordTypes.ParenthesesGroup);
+
+                            newParenthesesGroup.Children = GetKeyWordChildren2(newParenthesesGroup, input, i + 1, amountOfParentheses, newParenthesesGroup.Children, out amountOfParentheses, out newIndex, out errors, out nextKeyWord);
+                            returnList.Add(newParenthesesGroup);
+                            break;
+                        }
+                        else
+                        {
+                            errors += "Incorect Parentheses Syntax, ";
+                            break;
+                        }
+                    }
+                    else if (input[i] == ')')
+                    {
+                        amountOfParentheses--;
+                        if ((!keywords.ContainsKey(currentWord.ToLower()) || justInQuotes) && currentWord.Trim() != "")
+                        {
+                            if (keyWord.ChildrenAmountRange.CanHaveCommas)
+                            {
+                                commaGroup.Children.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+                                returnList.Add(commaGroup);
+                                break;
+                            }
+                            else
+                            {
+                                returnList.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+                            }
+                            break;
+                        }
+                        else
+                        {
+                            errors += "Incorect Use of " + currentWord + ", ";
+                            break;
+                        }
+                    }
+                    else if (input[i] == ',')
+                    {
+                        if ((!keywords.ContainsKey(currentWord.ToLower()) || justInQuotes) && currentWord.Trim() != "")
+                        {
+                            if (keyWord.ChildrenAmountRange.CanHaveCommas)
+                            {
+                                if (keyWord.KeyWordType != KeyWordTypes.CommaGroup)
+                                {
+
+                                    commaGroup.Children.Add(new SqlCustomInput(currentWord, commaGroup, justInQuotes));
+
+                                    returnList.Add(commaGroup);
+                                }
+                                else
+                                {
+                                    returnList.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+                                }
+                                currentWord = "";
+                            }
+                            else
+                            {
+                                errors += "Incorect Comma Syntax, ";
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            errors += "Incorect Use of " + currentWord + ", ";
+                            break;
+                        }
+                        currentWord = "";
+                        justHadComma = true;
+                        commaGroup = new SqlKeyWord("CommaGroup", keyWord, new Range(1, int.MaxValue, false, false), KeyWordTypes.CommaGroup);
+                    }
+                    else if (input[i] == ' ')
+                    {
+                        if (currentWord.Trim() != "" && !justHadComma)
+                        {
+                            if (keywords.ContainsKey(currentWord.ToLower()) && !justInQuotes)
+                            {
+                                if (keyWord.ChildrenAmountRange.CanHaveCommas && commaGroup.Children.Count > 0)
+                                {
+                                    returnList.Add(commaGroup);
+                                }
+                                nextKeyWord = new SqlKeyWord(currentWord, keyWord.Parent, keywords[currentWord.ToLower()], KeyWordTypes.Command);
+                                break;
+                            }
+                            else
+                            {
+                                if (keyWord.ChildrenAmountRange.CanHaveCommas)
+                                {
+                                    SqlCustomInput newCustomInput = new SqlCustomInput(currentWord, commaGroup, justInQuotes);
+                                    commaGroup.Children.Add(newCustomInput);
+                                }
+                                else
+                                {
+                                    returnList.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+                                }
+                            }
+                        }
+                        justHadComma = false;
+                        currentWord = "";
+                    }
+                    else
+                    {
+                        currentWord += input[i];
+                    }
+                    justInQuotes = false;
+                }
+                else
+                {
+                    //in Quotes
+                    if (input[i] == '"')
+                    {
+                        inQuotes = false;
+                        justInQuotes = true;
+                    }
+                    else
+                    {
+                        currentWord += input[i];
+                    }
+                }
+
+                if (i + 1 >= input.Length)
+                {
+                    if (keyWord.ChildrenAmountRange.CanHaveCommas)
+                    {
+                        if (currentWord.Trim() != "")
+                        {
+                            if (!keywords.ContainsKey(currentWord.ToLower()) || justInQuotes)
+                            {
+                                commaGroup.Children.Add(new SqlCustomInput(currentWord, commaGroup, justInQuotes));
+                                returnList.Add(commaGroup);
+                            }
+                            else
+                            {
+                                errors += "Incorect Use of " + currentWord + ", ";
+                                break;
+                            }
+                        }
+                        else if (commaGroup.Children.Count > 0)
+                        {
+                            returnList.Add(commaGroup);
+                        }
+                    }
+                    else
+                    {
+                        if (currentWord.Trim() != "")
+                        {
+                            if (!keywords.ContainsKey(currentWord.ToLower()) || justInQuotes)
+                            {
+                                returnList.Add(new SqlCustomInput(currentWord, keyWord, justInQuotes));
+                            }
+                            else
+                            {
+                                errors += "Incorect Use of " + currentWord + ", ";
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (returnList.Count < keyWord.ChildrenAmountRange.Min)
+            {
+                errors += "Incorect Use of " + keyWord.Input + ", ";
+            }
+            if (returnList.Count >= keyWord.ChildrenAmountRange.Max)
+            {
+                errors += "Incorect Use of " + keyWord.Input + ", ";
             }
             return returnList;
         }
