@@ -223,8 +223,21 @@ namespace BadSql
                 }
                 else if (node.Right != null)
                 {
-                    node.Value = node.Right.Value;
-                    node.DeleteChild(node.Right);
+                    Node<T> Parent = node.Parent;
+                    if (Parent != null)
+                    {
+                        if (Parent.isRight(node))
+                        {
+                            Parent.Right = node.Right;
+                        }
+                        else
+                        {
+                            Parent.Left = node.Right;
+                        }
+                    }
+                    
+                    node = node.Right;
+                    node.Parent = Parent;
                     //BalanceNode(node);
                 }
                 else

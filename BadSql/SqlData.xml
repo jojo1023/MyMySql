@@ -1,25 +1,52 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Tables>
-  <Table name="Students" currentID="2">
+  <Table name="Students" currentID="8">
     <Collumns>
       <Collumn StudentID="System.Int32" />
       <Collumn Name="System.String" />
     </Collumns>
     <BinaryTree BalanceValue="2">
-      <Node id="0">
+      <Node id="2">
         <Cells>
           <Cell Value="0" />
-          <Cell Value="Josiah" />
+          <Cell Value="josiah" />
         </Cells>
         <Left />
         <Right>
-          <Node id="1">
+          <Node id="4">
             <Cells>
-              <Cell Value="1" />
-              <Cell Value="Stan" />
+              <Cell Value="2" />
+              <Cell Value="ethan" />
             </Cells>
             <Left />
-            <Right />
+            <Right>
+              <Node id="5">
+                <Cells>
+                  <Cell Value="1" />
+                  <Cell Value="Glen" />
+                </Cells>
+                <Left />
+                <Right>
+                  <Node id="6">
+                    <Cells>
+                      <Cell Value="1" />
+                      <Cell Value="Glen" />
+                    </Cells>
+                    <Left />
+                    <Right>
+                      <Node id="7">
+                        <Cells>
+                          <Cell Value="4" />
+                          <Cell Value="Glen" />
+                        </Cells>
+                        <Left />
+                        <Right />
+                      </Node>
+                    </Right>
+                  </Node>
+                </Right>
+              </Node>
+            </Right>
           </Node>
         </Right>
       </Node>

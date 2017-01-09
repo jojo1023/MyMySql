@@ -146,30 +146,48 @@ namespace BadSql
             return returnInt;
         }
 
-        public int Update(SqlColumn collumn, IComparable value, string columnName, Opperations opperation, IComparable whereValue)
+        public int Update(List<SetPair> setPairs, string columnName, Opperations opperation, IComparable whereValue, out string errors)
         {
             int returnInt = 0;
-            if (collumn.VarType == value.GetType())
+            errors = "";
+            List<SqlRow> itemsToUpdate = Select(columnName, opperation, whereValue);
+            foreach (SetPair setPair in setPairs)
             {
-                List<SqlRow> itemsToUpdate = Select(columnName, opperation, whereValue);
-                foreach (SqlRow row in itemsToUpdate)
+                if (setPair.Collum.VarType == setPair.Value.GetType())
                 {
-                    row[collumn.Name].Value = value;
-                    returnInt++;
+                    foreach (SqlRow row in itemsToUpdate)
+                    {
+                        row[setPair.Collum.Name].Value = setPair.Value;
+                        returnInt++;
+                    }
+                }
+                else
+                {
+                    errors += "Values Don't Match Collumn Types, ";
+                    break;
                 }
             }
             return returnInt;
         }
-        public int Update(SqlColumn collumn, IComparable value)
+        public int Update(List<SetPair> setPairs, out string errors)
         {
             int returnInt = 0;
-            if (collumn.VarType == value.GetType())
+            errors = "";
+            List<SqlRow> itemsToUpdate = Select();
+            foreach (SetPair setPair in setPairs)
             {
-                List<SqlRow> itemsToUpdate = Select();
-                foreach (SqlRow row in itemsToUpdate)
+                if (setPair.Collum.VarType == setPair.Value.GetType())
                 {
-                    row[collumn.Name].Value = value;
-                    returnInt++;
+                    foreach (SqlRow row in itemsToUpdate)
+                    {
+                        row[setPair.Collum.Name].Value = setPair.Value;
+                        returnInt++;
+                    }
+                }
+                else
+                {
+                    errors += "Values Don't Match Collumn Types, ";
+                    break;
                 }
             }
             return returnInt;
@@ -183,7 +201,7 @@ namespace BadSql
             {
                 collumns.Add(new SqlColumn(collumElement.FirstAttribute.Name.ToString(), Type.GetType(collumElement.FirstAttribute.Value)));
             }
-            
+
             Name = tableElement.Attribute("name").Value;
             SqlColumns = collumns;
             SqlColumnIndicesByName = SqlColumns.Select((col, ind) => new { Column = col, Index = ind }).ToDictionary(col => col.Column.Name, col => col.Index);
@@ -215,6 +233,16 @@ namespace BadSql
             }
 
             return currentNode;
+        }
+    }
+    public class SetPair
+    {
+        public SqlColumn Collum { get; set; }
+        public IComparable Value { get; set; }
+        public SetPair(SqlColumn collumn, IComparable value)
+        {
+            Collum = collumn;
+            Value = value;
         }
     }
 
