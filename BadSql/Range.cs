@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 namespace BadSql
 {
     [DebuggerDisplay("{Min} - {Max}")]
+
+    //The range of children that key words have includeing if they can have comma groups or parentheses groups
     public class Range
     {
         public int Min { get; set; }

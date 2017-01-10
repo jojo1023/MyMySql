@@ -153,12 +153,12 @@ namespace BadSql
             List<SqlRow> itemsToUpdate = Select(columnName, opperation, whereValue);
             foreach (SetPair setPair in setPairs)
             {
+                returnInt++;
                 if (setPair.Collum.VarType == setPair.Value.GetType())
                 {
                     foreach (SqlRow row in itemsToUpdate)
                     {
                         row[setPair.Collum.Name].Value = setPair.Value;
-                        returnInt++;
                     }
                 }
                 else
@@ -176,12 +176,12 @@ namespace BadSql
             List<SqlRow> itemsToUpdate = Select();
             foreach (SetPair setPair in setPairs)
             {
+                returnInt++;
                 if (setPair.Collum.VarType == setPair.Value.GetType())
                 {
                     foreach (SqlRow row in itemsToUpdate)
                     {
                         row[setPair.Collum.Name].Value = setPair.Value;
-                        returnInt++;
                     }
                 }
                 else

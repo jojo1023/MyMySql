@@ -41,14 +41,14 @@ namespace BadSql
             bool hasWhere;
             Table table;
             string originalInput;
+            string output = "";
 
             do
             {
-                //input = Console.ReadLine().Split(' ');
                 string errors;
                 originalInput = Console.ReadLine();
-                //input = Split(originalInput, out errors);
                 input = Split2(originalInput, out errors);
+
                 if (input.Count > 0 && errors == "")
                 {
                     switch (input[0].Input.ToLower())
@@ -144,7 +144,7 @@ namespace BadSql
                                 {
                                     rows = table.Select();
                                 }
-                                DisplayRows(table, rows, collums);
+                                output = DisplayTable(table, rows, collums);
                             }
                             break;
                         #endregion
@@ -281,8 +281,7 @@ namespace BadSql
                                 {
                                     table.AddRow(values[i].ToArray());
                                 }
-                                Console.WriteLine(values.Count.ToString() + " Row(s) Inserted");
-
+                                output = values.Count.ToString() + " Row(s) Inserted";
                             }
                             break;
                         #endregion
@@ -353,7 +352,7 @@ namespace BadSql
                                                     break;
                                                 }
                                                 tables.Add(tableName, new Table(tableName, newCollumns.ToArray()));
-                                                Console.WriteLine("Table Added");
+                                                output = "Table Added";
                                             }
                                             else
                                             {
@@ -422,7 +421,7 @@ namespace BadSql
                                         amountOfRows = table.Delete(whereCollum.Name, whereOpperation, whereValue);
                                     }
 
-                                    Console.WriteLine(amountOfRows.ToString() + " Rows " + "Affected");
+                                    output = amountOfRows.ToString() + " Rows " + "Affected";
                                 }
                                 else
                                 {
@@ -442,7 +441,7 @@ namespace BadSql
                             {
                                 table = tables[input[0].Children[0].Input];
                                 table.Sort();
-                                Console.WriteLine("Table Sorted");
+                                output = "Table Sorted";
                             }
                             else
                             {
@@ -460,7 +459,7 @@ namespace BadSql
                                     if (tables.ContainsKey(input[1].Children[0].Input))
                                     {
                                         tables.Remove(input[1].Children[0].Input);
-                                        Console.WriteLine("1 Table Droped");
+                                        output = "1 Table Droped";
                                     }
                                     else
                                     {
@@ -474,7 +473,7 @@ namespace BadSql
                             }
                             break;
                         #endregion
-                        //fix with new parseing
+
                         #region Update
                         case ("update"):
                             whereCollum = null;
@@ -549,11 +548,11 @@ namespace BadSql
                                     {
                                         break;
                                     }
-                                    
-                                    if(input.Count >= 3 && input[2].Input.ToLower() == "where")
+
+                                    if (input.Count >= 3 && input[2].Input.ToLower() == "where")
                                     {
                                         hasWhere = true;
-                                        if(!GetWhereInfo(input[2], table, out whereCollum, out whereOpperation, out whereValue))
+                                        if (!GetWhereInfo(input[2], table, out whereCollum, out whereOpperation, out whereValue))
                                         {
                                             errors += "Incorect Syntax Near Where, ";
                                             break;
@@ -570,7 +569,7 @@ namespace BadSql
                                     }
                                     if (errors == "")
                                     {
-                                        Console.WriteLine(amountOfUpdatedRows + " Rows Updated");
+                                        output = amountOfUpdatedRows + " Rows Updated";
                                     }
                                 }
                                 else
@@ -594,11 +593,13 @@ namespace BadSql
                 if (errors.Length > 2)
                 {
                     errors = errors.Remove(errors.Length - 2, 2);
-                    Console.WriteLine(errors);
+                    output = errors;
                 }
+                Console.WriteLine(output);
             } while (originalInput.ToLower() != "exit");
             SaveXML();
         }
+
         public static bool GetWhereInfo(SqlKeyWord WhereKeyWord, Table table, out SqlColumn whereCollum, out Opperations whereOpperation, out IComparable whereValue)
         {
             whereCollum = null;
@@ -674,8 +675,6 @@ namespace BadSql
             }
             return true;
         }
-        
-
 
         public static List<SqlKeyWord> Split2(string input, out string errors)
         {
@@ -1019,6 +1018,7 @@ namespace BadSql
             }
             xdoc.Save(xmlFile);
         }
+
         public static XElement FillXMLBinaryTree(Table table, Node<SqlRow> node, XElement currentElement)
         {
             XElement newNode = new XElement("Node", new XAttribute("id", node.Value.Id));
@@ -1045,77 +1045,137 @@ namespace BadSql
             return currentElement;
         }
 
-        public static void DisplayRows(Table table, List<SqlRow> rows, List<SqlColumn> collumns)
+        //Returns a string that displays the table with ASCII
+        public static string DisplayTable(Table table, List<SqlRow> rows, List<SqlColumn> columns)
         {
-            int startY = Console.CursorTop;
-            int currentY = startY;
-            int currentX = 0;
+            string returnString = "";
+            List<int> columnWidths = new List<int>(); //How wide a column each needs to be in characters to fit all the data in it
+            int paddingSize = 1;
+            int headerLevel = 0;//The current level of the header being displayed 0 = bottom of Table, 1 = bottom of Header, 2 = header, 3 = top of Header 
+            
+            //Characters for the sides and corners of the table
             char cornerChar = '+';
             char verticalChar = '|';
             char horizontalChar = '-';
-            int currentYBefore;
-            for (int x = 0; x < table.SqlColumns.Count; x++)
+
+            for (int i = 0; i < table.SqlColumns.Count; i++)
             {
-                if (collumns.Contains(table.SqlColumns[x]))
+                columnWidths.Add(table.SqlColumns[i].Name.Length);
+            }
+            //displays table without header
+            returnString += DisplayColumns(table, rows, columns, 0, 0, paddingSize, verticalChar, columnWidths, out columnWidths);
+            returnString += Environment.NewLine;
+            //loops through collumns to add header
+            for (int x = columns.Count - 1; x >= 0; x--)
+            {
+                //if header level is not the bottom of the table
+                if (headerLevel != 0)
                 {
-                    int CollumnWidth = 0;
-                    Console.SetCursorPosition(currentX, currentY);
-                    Console.Write(cornerChar);
-                    currentY++;
-                    Console.SetCursorPosition(currentX, currentY);
-                    Console.Write(verticalChar + " " + table.SqlColumns[x].Name + " ");
-                    CollumnWidth = table.SqlColumns[x].Name.Length;
-                    currentY++;
-                    Console.SetCursorPosition(currentX, currentY);
-                    Console.Write(cornerChar);
-                    currentY++;
-                    currentYBefore = currentY;
-                    for (int y = currentYBefore; y < currentYBefore + rows.Count; y++)
+                    //if on last collumn new Line
+                    if (x + 1 >= columns.Count)
                     {
-                        Console.SetCursorPosition(currentX, currentY);
-                        Console.Write(verticalChar + " " + rows[y - currentYBefore].Cells[x].Value.ToString() + " ");
-                        if (CollumnWidth < rows[y - currentYBefore].Cells[x].Value.ToString().Length)
-                        {
-                            CollumnWidth = rows[y - currentYBefore].Cells[x].Value.ToString().Length;
-                        }
-                        currentY++;
+                        returnString = Environment.NewLine + returnString;
                     }
-                    Console.SetCursorPosition(currentX, currentY);
-                    Console.Write(cornerChar + RepeatChar(horizontalChar, CollumnWidth + 2));
+                    //if header level is not header display a solid line
+                    if (headerLevel != 2)
+                    {
+                        returnString = RepeatChar(horizontalChar, columnWidths[x] + (paddingSize * 2)) + cornerChar + returnString;
+                    }
+                    else
+                    {
+                        returnString = RepeatChar(' ', paddingSize) + columns[x].Name + RepeatChar(' ', columnWidths[x] + paddingSize - columns[x].Name.Length) + verticalChar + returnString;
+                    }
+                    //if on first collumn display cornerChar
+                    if (x == 0)
+                    {
+                        //if header level is the header display verticalChar else display cornerChar
+                        if (headerLevel == 2)
+                        {
+                            returnString = verticalChar + returnString;
+                        }
+                        else
+                        {
+                            returnString = cornerChar + returnString;
+                        }
 
-                    Console.SetCursorPosition(currentX, currentYBefore - 1);
-                    Console.Write(cornerChar + RepeatChar(horizontalChar, CollumnWidth + 2));
-
-                    Console.SetCursorPosition(currentX, startY);
-                    Console.Write(cornerChar + RepeatChar(horizontalChar, CollumnWidth + 2));
-
-                    currentX += CollumnWidth + 3;
-                    currentY = startY;
+                    }
                 }
-            }
-            Console.SetCursorPosition(currentX, currentY);
-            Console.Write(cornerChar);
-            currentY++;
-            Console.SetCursorPosition(currentX, currentY);
-            Console.Write(verticalChar);
+                else
+                {
+                    int oppositeX = columns.Count - 1 - x;
+                    
+                    //if on first collumn display cornerChar
+                    if (oppositeX == 0)
+                    {
+                        returnString += cornerChar;
+                    }
+                    returnString += RepeatChar(horizontalChar, columnWidths[oppositeX] + (paddingSize * 2)) + cornerChar;
+                    //if on last collumn new Line
+                    if (oppositeX + 1 >= columns.Count)
+                    {
+                        returnString += Environment.NewLine;
+                    }
+                }
+                //if first collumn and current header level is not the top display the next header level
+                if (x == 0 && headerLevel < 3)
+                {
+                    headerLevel++;
+                    x = columns.Count;
+                }
 
-            currentY++;
-            Console.SetCursorPosition(currentX, currentY);
-            Console.Write(cornerChar);
-            currentY++;
-            currentYBefore = currentY;
-            for (int y = currentYBefore; y < currentYBefore + rows.Count; y++)
-            {
-                Console.SetCursorPosition(currentX, currentY);
-                Console.Write(verticalChar);
-                currentY++;
             }
-            Console.SetCursorPosition(currentX, currentY);
-            Console.Write(cornerChar);
 
-            Console.SetCursorPosition(0, currentY + 1);
+            return returnString;
         }
+        
+        //Displays the value for each column
+        public static string DisplayColumns(Table table, List<SqlRow> rows, List<SqlColumn> columns, int rowIndex, int columnIndex, int paddingSize, char verticalChar, List<int> currentColumnWidths, out List<int> columnWidths)
+        {
+            string returnString = "";
+            int amountOfExtraPaddingForRow;
+            columnWidths = currentColumnWidths;
+            string nextCollumn = "";
+            string nextRow = "";
+            //if on first collumn display wall
+            if (columnIndex == 0)
+            {
+                returnString += verticalChar;
+            }
 
+            //if this rows data is longer than the collumn width set the collumn width to the length of this rows data
+            if (columnWidths[columnIndex] < rows[rowIndex].Cells[columnIndex].Value.ToString().Length)
+            {
+                columnWidths[columnIndex] = rows[rowIndex].Cells[columnIndex].Value.ToString().Length;
+            }
+
+            returnString += RepeatChar(' ', paddingSize) + rows[rowIndex].Cells[columnIndex].Value.ToString();//Dislays current row and collumn value
+
+            //if not on last collumn get next collumn
+            if (columnIndex + 1 < columns.Count)
+            {
+                nextCollumn = DisplayColumns(table, rows, columns, rowIndex, columnIndex + 1, paddingSize, verticalChar, columnWidths, out columnWidths);
+            }
+            //if not on last row get next row
+            else if (rowIndex + 1 < rows.Count)
+            {
+                nextRow = DisplayColumns(table, rows, columns, rowIndex + 1, 0, paddingSize, verticalChar, columnWidths, out columnWidths);
+            }
+            //add padding for collumn
+            amountOfExtraPaddingForRow = columnWidths[columnIndex] - rows[rowIndex].Cells[columnIndex].Value.ToString().Length;
+            returnString += RepeatChar(' ', paddingSize + amountOfExtraPaddingForRow) + verticalChar;
+            //display next collumn and row
+            returnString += nextCollumn;
+            //if there is a next row new line and display it
+            if (nextRow != "")
+            {
+                returnString += Environment.NewLine + nextRow;
+            }
+            
+
+            return returnString;
+        }
+        
+        //Returns a string of a character repeated for a certain amount of time
         public static string RepeatChar(char letter, int amountOfTimes)
         {
             string returnString = "";
