@@ -56,7 +56,6 @@
     <Compile Include="SqlCustomInput.cs" />
     <Compile Include="SqlKeyWord.cs" />
     <Compile Include="SqlRow.cs" />
-    <Compile Include="Student.cs" />
     <Compile Include="Table.cs" />
   </ItemGroup>
   <ItemGroup>

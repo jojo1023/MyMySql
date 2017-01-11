@@ -9,7 +9,6 @@ namespace BadSql
 {
     class Program
     {
-        static BinaryTree<Student> tree = new BinaryTree<Student>();
         static string xmlFile = "SqlData.xml";
         static XDocument xdoc = XDocument.Load(xmlFile);
         static Dictionary<string, Table> tables = new Dictionary<string, Table>();
@@ -48,8 +47,7 @@ namespace BadSql
                 string errors;
                 originalInput = Console.ReadLine();
                 input = Split2(originalInput, out errors);
-
-                if (input.Count > 0 && errors == "")
+                while (input.Count > 0 && errors == "")
                 {
                     switch (input[0].Input.ToLower())
                     {
@@ -124,7 +122,7 @@ namespace BadSql
                                     errors += "Table Doesn't Exist, ";
                                     break;
                                 }
-                                if (input.Count >= 3)
+                                if (input.Count >= 3 && input[2].Input.ToLower() == "where")
                                 {
                                     SqlKeyWord whereKeyWord = input[2];
                                     hasWhere = GetWhereInfo(whereKeyWord, table, out whereCollum, out whereOpperation, out whereValue);
@@ -136,6 +134,12 @@ namespace BadSql
                                 }
 
                                 List<SqlRow> rows = table.Select(hasWhere, whereCollum.Name, whereOpperation, whereValue);
+                                input.RemoveAt(0);
+                                input.RemoveAt(0);
+                                if (hasWhere)
+                                {
+                                    input.RemoveAt(0);
+                                }
 
                                 output = DisplayTable(table, rows, collums);
                             }
@@ -149,12 +153,14 @@ namespace BadSql
                                 SqlKeyWord Values = null;
                                 List<SqlKeyWord> ValueSets = new List<SqlKeyWord>();
                                 table = null;
+                                bool hasInto = false;
                                 if (input.Count >= 3 && input[1].Input.ToLower() == "into" && input[2].Input.ToLower() == "values")
                                 {
                                     if (tables.ContainsKey(input[1].Children[0].Input))
                                     {
                                         table = tables[input[1].Children[0].Input];
                                         Values = input[2];
+                                        hasInto = true;
                                     }
                                     else
                                     {
@@ -224,7 +230,7 @@ namespace BadSql
                                                     {
                                                         compareValue = ((IConvertible)CommaGroup.Children[0].Input).ToType(currentCollumn.VarType, System.Globalization.CultureInfo.InvariantCulture);
                                                     }
-                                                    catch (Exception e)
+                                                    catch
                                                     {
                                                         errors += "Incorect Type Of Value Being Inserted, ";
                                                         valueSetOk = false;
@@ -275,6 +281,13 @@ namespace BadSql
                                     table.AddRow(values[i].ToArray());
                                 }
                                 output = values.Count.ToString() + " Row(s) Inserted";
+
+                                input.RemoveAt(0);
+                                input.RemoveAt(0);
+                                if (hasInto)
+                                {
+                                    input.RemoveAt(0);
+                                }
                             }
                             break;
                         #endregion
@@ -346,6 +359,8 @@ namespace BadSql
                                                 }
                                                 tables.Add(tableName, new Table(tableName, newCollumns.ToArray()));
                                                 output = "Table Added";
+                                                input.RemoveAt(0);
+                                                input.RemoveAt(0);
                                             }
                                             else
                                             {
@@ -407,6 +422,12 @@ namespace BadSql
                                     int amountOfRows = table.Delete(hasWhere, whereCollum.Name, whereOpperation, whereValue);
 
                                     output = amountOfRows.ToString() + " Rows " + "Affected";
+                                    input.RemoveAt(0);
+                                    input.RemoveAt(0);
+                                    if (hasWhere)
+                                    {
+                                        input.RemoveAt(0);
+                                    }
                                 }
                                 else
                                 {
@@ -427,6 +448,8 @@ namespace BadSql
                                 table = tables[input[0].Children[0].Input];
                                 table.Sort();
                                 output = "Table Sorted";
+
+                                input.RemoveAt(0);
                             }
                             else
                             {
@@ -445,6 +468,8 @@ namespace BadSql
                                     {
                                         tables.Remove(input[1].Children[0].Input);
                                         output = "1 Table Droped";
+                                        input.RemoveAt(0);
+                                        input.RemoveAt(0);
                                     }
                                     else
                                     {
@@ -549,6 +574,13 @@ namespace BadSql
                                     if (errors == "")
                                     {
                                         output = amountOfUpdatedRows + " Rows Updated";
+
+                                        input.RemoveAt(0);
+                                        input.RemoveAt(0);
+                                        if (hasWhere)
+                                        {
+                                            input.RemoveAt(0);
+                                        }
                                     }
                                 }
                                 else
@@ -569,13 +601,15 @@ namespace BadSql
                             break;
                             #endregion
                     }
+                    Console.WriteLine(output);
+                    output = "";
                 }
                 if (errors.Length > 2)
                 {
                     errors = errors.Remove(errors.Length - 2, 2);
                     output = errors;
+                    Console.WriteLine(output);
                 }
-                Console.WriteLine(output);
             } while (originalInput.ToLower() != "exit");
             SaveXML();
         }
@@ -1043,8 +1077,11 @@ namespace BadSql
                 columnWidths.Add(table.SqlColumns[i].Name.Length);
             }
             //displays table without header
-            returnString += DisplayColumns(table, rows, columns, 0, 0, paddingSize, verticalChar, columnWidths, out columnWidths);
-            returnString += Environment.NewLine;
+            if (rows.Count > 0)
+            {
+                returnString += DisplayColumns(table, rows, columns, 0, 0, paddingSize, verticalChar, columnWidths, out columnWidths);
+                returnString += Environment.NewLine;
+            }
             //loops through collumns to add header
             for (int x = columns.Count - 1; x >= 0; x--)
             {

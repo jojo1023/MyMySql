@@ -10,21 +10,35 @@ namespace BadSql
     {
         public Node<T> BaseNode { get; set; }
 
+        /// <summary>
+        /// Default Constructor to initialize baseNode because root needs to be null to start
+        /// </summary>
         public BinaryTree()
         {
+            BaseNode = null;
         }
 
+        /// <summary>
+        /// Constructor where root is already built in
+        /// </summary>
+        /// <param name="baseNode">Root of binary tree</param>
         public BinaryTree(T baseNode)
         {
             BaseNode = new Node<T>(baseNode);
         }
 
-        public Node<T> AddNode(T valueOfNewNode)
+        /// <summary>
+        /// Adds a new node to the binary tree in sorted position 
+        /// </summary>
+        /// <param name="value">The value of the node being added</param>
+        /// <returns></returns>
+        public Node<T> AddNode(T value)
         {
-            Node<T> newNode = new Node<T>(valueOfNewNode);
-            //if base node isn't node find where to put node else set base node to the new node
+            Node<T> newNode = new Node<T>(value);
+            //if baseNode isn't null find where to put node else set root to the newNode
             if (BaseNode != null)
             {
+                //Recursively finds sorted position for newNode and adds newNode
                 AddNodeToTree(newNode);
             }
             else
@@ -34,68 +48,65 @@ namespace BadSql
             return newNode;
         }
 
-        //Delete a node in the tree without deleteing its children
-        public void DeleteNode(T valueOfNodeToDelete)
+        /// <summary>
+        ///Delete a node in the tree without deleteing its children
+        /// </summary>
+        /// <param name="value">The value of the node to be deleted</param>
+        public void DeleteNode(T value)
         {
-            Node<T> nodeToDelete = GetNode(valueOfNodeToDelete, BaseNode);
-            //if node to delete was found countinue
+            //Finds the nodeToDelete (if it exists)
+            Node<T> nodeToDelete = GetNode(value, BaseNode);
+
             if (nodeToDelete != null)
             {
-                //if node to delete has a left child
+                //If the nodeToDelete has any value less than it, replace node to delete with next greatest value
                 if (nodeToDelete.Left != null)
                 {
-                    //finds the node with the greatest value to the left of the node to delete
+                    //Get Node to swap with for deletion
                     Node<T> greatestNodeInLeftSubtree = FindBottomRightNode(nodeToDelete.Left);
 
-                    //if the greatest node in left subtree has a left child (it won't ever have a right child)
+                    //Remove greatestNodeInLeftSubtree and replace value with nodeToDelete
                     if (greatestNodeInLeftSubtree.Left != null)
                     {
-                        //if greatest node in left subtree is right of its parent set its parent right child to greatest node in left subtree left child
                         if (greatestNodeInLeftSubtree.Parent.isRight(greatestNodeInLeftSubtree))
                         {
                             greatestNodeInLeftSubtree.Parent.Right = greatestNodeInLeftSubtree.Left;
                         }
-                        //set greatest node in left subtree parents right child to greatest node in left subtree left child
                         else
                         {
                             greatestNodeInLeftSubtree.Parent.Left = greatestNodeInLeftSubtree.Left;
                         }
-                        //set greatest node in left subtree left child to its old parent
                         greatestNodeInLeftSubtree.Left.Parent = greatestNodeInLeftSubtree.Parent;
                     }
-                    //if greatest node in left subtree doesn't have children delete it from its parent
                     else
                     {
                         greatestNodeInLeftSubtree.Parent.DeleteChild(greatestNodeInLeftSubtree);
                     }
-                    //set node to delete value to greatest node in left subtree value
                     nodeToDelete.Value = greatestNodeInLeftSubtree.Value;
                 }
-                //if node to delete doesn't have left child and has right child
+
+                //Replaces nodeToDelete with its right child
                 else if (nodeToDelete.Right != null)
                 {
                     Node<T> nodeToDeleteParent = nodeToDelete.Parent;
-                    //if node to delete has a parent
+
                     if (nodeToDeleteParent != null)
                     {
-                        //if node to delete is the right child of its parent then set its parents right child to node to deletes right child
                         if (nodeToDeleteParent.isRight(nodeToDelete))
                         {
                             nodeToDeleteParent.Right = nodeToDelete.Right;
                         }
-                        //else set node to deletes parent left child to node to deletes right child
                         else
                         {
                             nodeToDeleteParent.Left = nodeToDelete.Right;
                         }
                     }
-                    //set node to deletes right childs parent to node to delete parent
                     nodeToDelete.Right.Parent = nodeToDeleteParent;
                 }
-                //if node to delete doesn't have any children
+
+                //NodeToDelete doesn't have children so it is deleted
                 else
                 {
-                    //if node to delete has parent delete it from its parent else node to delete is the base node so set the base node to null
                     if (nodeToDelete.Parent != null)
                     {
                         nodeToDelete.Parent.DeleteChild(nodeToDelete);
@@ -107,35 +118,44 @@ namespace BadSql
                 }
             }
         }
-        
-        //Gets nodes in order of their values asending
+
+        /// <summary>
+        ///Gets nodes in order of their values asending
+        /// </summary>
+        /// <returns>Returns a List of values</returns>
         public List<T> GetNodesInOrder()
         {
-            return GetNodesSortedBetweenToNodes(GetBottomLeftNode(BaseNode), BaseNode, new List<T>());
+            //Finds the smallest node in the tree and finds all the nodes between it and the root
+            return GetAllAncestors(GetBottomLeftNode(BaseNode), BaseNode, new List<T>());
         }
 
-        //Sorts the nodes in the tree into a more balanced orientation
+        /// <summary>
+        ///Sorts the nodes in the tree into a more balanced orientation
+        /// </summary>
         public void Sort()
         {
             List<T> nodesInOrder = GetNodesInOrder();
-            List<T> balanceList = balanceSort(nodesInOrder, new List<T>());
-            BaseNode = null;//Delete the entire tree
+            List<T> balanceList = balanceSort(nodesInOrder);//Gets the nodes in an order that when added back will make the tree balanced
+            BaseNode = null;//Deletes the entire tree by making nothing point to the nodes
 
-            //Adds every node back into the tree but in a balanced order
+            //Adds every node back into the tree
             for (int i = 0; i < balanceList.Count; i++)
             {
                 AddNode(balanceList[i]);
             }
         }
 
-        //Adds a node to tree in the proper place
+        /// <summary>
+        ///Adds a node to the tree in a sorted position
+        /// </summary>
+        /// <param name="newNode">The node being added</param>
         void AddNodeToTree(Node<T> newNode)
         {
             Node<T> currentNode = BaseNode;
 
             while (true)
             {
-                //if new node is greater than the current node
+                //if new node is greater than the current node 
                 if (newNode.Value.CompareTo(currentNode.Value) > 0)
                 {
                     //if current node has a right node then the current node is the current nodes right child else currentNodes right child becomes the new node
@@ -173,54 +193,55 @@ namespace BadSql
             }
         }
 
-        //Gets a node in the table from its value
+
+        /// <summary>
+        /// Gets a node in the table from its value
+        /// </summary>
+        /// <param name="value">The value of the node being found</param>
+        /// <param name="currentNode">The current node that the function is recusing though</param>
+        /// <returns>Returns a node in the binary tree that has the same value</returns>
         Node<T> GetNode(T value, Node<T> currentNode)
         {
             if (currentNode != null)
             {
-                //if current nodes value is equal to value return current node
+                //if currentNode or its children is the node being found return the node
                 if (currentNode.Value.CompareTo(value) == 0)
                 {
                     return currentNode;
                 }
-                //if current nodes left childs value is equal to value return current nodes left child
                 if (currentNode.Left != null && currentNode.Left.Value.CompareTo(value) == 0)
                 {
                     return currentNode.Left;
                 }
-                //else if value is greater than current nodes left childs value then seach there
-                else if (currentNode.Left != null && value.CompareTo(currentNode.Left.Value) == -1)
-                {
-                    Node<T> possibleReturn = GetNode(value, currentNode.Left);
-                    //if found value return possible return
-                    if (possibleReturn != null)
-                    {
-                        return possibleReturn;
-                    }
-                }
-                //if current nodes right childs value is equal to value return current nodes right child
                 if (currentNode.Right != null && currentNode.Right.Value.CompareTo(value) == 0)
                 {
                     return currentNode.Right;
                 }
-                //else if value is greater than current nodes right childs value then seach there
-                else if (currentNode.Right != null && value.CompareTo(currentNode.Right.Value) == 1)
+
+                //if value is less than currentNode value then countinue searching to the left of currentNode 
+                if (currentNode.Left != null && value.CompareTo(currentNode.Left.Value) == -1)
                 {
-                    Node<T> possibleReturn = GetNode(value, currentNode.Right);
-                    //if found value return possible return
-                    if (possibleReturn != null)
-                    {
-                        return possibleReturn;
-                    }
+                    return GetNode(value, currentNode.Left);
+                }
+
+                //if value is greater than currentNode value then countinue searching to the right of currentNode 
+                if (currentNode.Right != null && value.CompareTo(currentNode.Right.Value) == 1)
+                {
+                    return GetNode(value, currentNode.Right);
                 }
             }
             return null;
         }
 
-        //Gets the node that is all the way to the left (the node with the smallest value) starting from the current node
+
+        /// <summary>
+        /// Gets the node that is all the way to the left (the node with the smallest value)
+        /// </summary>
+        /// <param name="currentNode"></param>
+        /// <returns>The current node being recused through</returns>
         Node<T> GetBottomLeftNode(Node<T> currentNode)
         {
-            //if current node has a left keep searching to the left
+            //if current node has a left keep recusing left
             if (currentNode != null && currentNode.Left != null)
             {
                 return GetBottomLeftNode(currentNode.Left);
@@ -228,52 +249,67 @@ namespace BadSql
             return currentNode;
         }
 
-        //Gets the node that is all the way to the right (the node with the greatest value) starting from the current node
+        /// <summary>
+        /// Gets the node that is all the way to the right (the node with the greatest value)
+        /// </summary>
+        /// <param name="currentNode"></param>
+        /// <returns>The current node being recused through</returns>
         Node<T> FindBottomRightNode(Node<T> currentNode)
         {
-            //if current node has a left keep searching to the right
+            //if current node has a left keep recusing left
             if (currentNode != null && currentNode.Right != null)
             {
                 return FindBottomRightNode(currentNode.Right);
             }
             return currentNode;
         }
-        
-        //Gets all the nodes from the current node to the stop node
-        List<T> GetNodesSortedBetweenToNodes(Node<T> currentNode, Node<T> stopNode, List<T> currentList)
+
+        /// <summary>
+        /// Gets a sorted list of the current nodes ancestors and their descenants
+        /// </summary>
+        /// <param name="currentNode">The current node being added to the list</param>
+        /// <param name="lastAncestor">The last ancestor to add to the list</param>
+        /// <param name="currentList">The current list of ancstors</param>
+        /// <returns></returns>
+        List<T> GetAllAncestors(Node<T> currentNode, Node<T> lastAncestor, List<T> currentList)
         {
             if (currentNode != null)
             {
                 currentList.Add(currentNode.Value);
 
-                //if current node has a right child add its descendants
+                //if currentNode has a right child get its descendants by recusing down the tree
                 if (currentNode.Right != null)
                 {
                     currentList = GetAllDescendants(currentNode.Right, currentList);
                 }
-                //if current node has a parent and it is not the stop node countinue finding nodes
-                if (currentNode.Parent != null && currentNode != stopNode)
+                //if currentNode has a parent and it is not the last ancestor countinue recusing up the tree
+                if (currentNode.Parent != null && currentNode != lastAncestor)
                 {
-                    currentList = GetNodesSortedBetweenToNodes(currentNode.Parent, stopNode, currentList);
+                    currentList = GetAllAncestors(currentNode.Parent, lastAncestor, currentList);
                 }
             }
             return currentList;
         }
 
-        //Gets all the descendants of the current node
+        /// <summary>
+        /// Gets a sorted list of all the descendants of a node
+        /// </summary>
+        /// <param name="currentNode">The current node being recused through</param>
+        /// <param name="currentList">The current list of descedants</param>
+        /// <returns></returns>
         List<T> GetAllDescendants(Node<T> currentNode, List<T> currentList)
         {
             if (currentNode != null)
             {
-                //if current node has a left child get nodes from current nodes left ost node to current nodes left child
+                //if current node has a left child get all its decendants in order by recusing up from the most bottom left node
                 if (currentNode.Left != null)
                 {
-                    currentList = GetNodesSortedBetweenToNodes(GetBottomLeftNode(currentNode.Left), currentNode.Left, currentList);
+                    currentList = GetAllAncestors(GetBottomLeftNode(currentNode.Left), currentNode.Left, currentList);
                 }
 
                 currentList.Add(currentNode.Value);
 
-                //if current node has a right child get all of current nodes right child descendants
+                //if current node has a left child get all its decendants in order by recusing down
                 if (currentNode.Right != null)
                 {
                     currentList = GetAllDescendants(currentNode.Right, currentList);
@@ -282,39 +318,44 @@ namespace BadSql
             return currentList;
         }
 
-        //returns a list of nodes in a balanced order
-        List<T> balanceSort(List<T> sortedList, List<T> currentList)
+        /// <summary>
+        /// Puts the nodes in the tree into an order that when added back will put the tree in a more optimal/balanced orientation
+        /// </summary>
+        /// <param name="sortedList">A sorted list of all the nodes in the tree</param>
+        /// <returns></returns>
+        List<T> balanceSort(List<T> sortedList)
         {
-            //if the sorted tlist isn't empty
+            List<T> returnList = new List<T>();
+
+            //Puts the list in a balanced order by finding the middle value of the sorted list and recursively do the same thing to the 2 halfs of the sorted list
             if (sortedList.Count > 0)
             {
-                List<List<T>> nextLists = new List<List<T>>();//a list of the next lists to be added to the current list
+                List<T> bottomHalfToBeBalanced;//The bottom half of the sorted list that needs to be balanced
+                List<T> TopHalfToBeBalanced;//The top half of the sorted list that needs to be balanced
 
-                //Removes the middle item from the sorted list and adds the elements to the left and right of it to next lists
+                //Removes the middle item from the sorted list and sets the bottomHalfToBeBalanced and TopHalfToBeBalanced
                 if (sortedList.Count % 2 == 0)
                 {
-                    currentList.Add(sortedList[sortedList.Count / 2 - 1]);
+                    returnList.Add(sortedList[sortedList.Count / 2 - 1]);
                     sortedList.RemoveAt(sortedList.Count / 2 - 1);
 
-                    nextLists.Add(sortedList.Take((sortedList.Count + 1) / 2 - 1).ToList());
-                    nextLists.Add(sortedList.Skip((sortedList.Count + 1) / 2 - 1).ToList());
+                    bottomHalfToBeBalanced = sortedList.Take((sortedList.Count + 1) / 2 - 1).ToList();
+                    TopHalfToBeBalanced = sortedList.Skip((sortedList.Count + 1) / 2 - 1).ToList();
                 }
                 else
                 {
-                    currentList.Add(sortedList[(sortedList.Count + 1) / 2 - 1]);
+                    returnList.Add(sortedList[(sortedList.Count + 1) / 2 - 1]);
                     sortedList.RemoveAt((sortedList.Count + 1) / 2 - 1);
 
-                    nextLists.Add(sortedList.Take(sortedList.Count / 2 - 1).ToList());
-                    nextLists.Add(sortedList.Skip(sortedList.Count / 2 - 1).ToList());
+                    bottomHalfToBeBalanced = sortedList.Take(sortedList.Count / 2 - 1).ToList();
+                    TopHalfToBeBalanced = sortedList.Skip(sortedList.Count / 2 - 1).ToList();
                 }
 
-                //balances the next lists to get a complete balanced list
-                foreach (List<T> list in nextLists)
-                {
-                    currentList = (balanceSort(list, currentList));
-                }
+                //balances the top and bottom halfs of the sorted list
+                returnList.AddRange(balanceSort(bottomHalfToBeBalanced));
+                returnList.AddRange(balanceSort(TopHalfToBeBalanced));
             }
-            return currentList;
+            return returnList;
         }
     }
 }

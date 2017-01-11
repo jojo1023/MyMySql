@@ -1,55 +1,55 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Tables>
-  <Table name="Students" currentID="8">
+  <Table name="Students" currentID="11">
     <Collumns>
       <Collumn StudentID="System.Int32" />
       <Collumn Name="System.String" />
     </Collumns>
-    <BinaryTree BalanceValue="2">
-      <Node id="2">
+    <BinaryTree>
+      <Node id="8">
         <Cells>
-          <Cell Value="0" />
-          <Cell Value="josiah" />
+          <Cell Value="1" />
+          <Cell Value="glen" />
         </Cells>
-        <Left />
+        <Left>
+          <Node id="2">
+            <Cells>
+              <Cell Value="0" />
+              <Cell Value="josiah" />
+            </Cells>
+            <Left />
+            <Right />
+          </Node>
+        </Left>
         <Right>
-          <Node id="4">
+          <Node id="9">
             <Cells>
               <Cell Value="2" />
               <Cell Value="ethan" />
             </Cells>
             <Left />
             <Right>
-              <Node id="5">
+              <Node id="10">
                 <Cells>
-                  <Cell Value="1" />
-                  <Cell Value="Glen" />
+                  <Cell Value="3" />
+                  <Cell Value="amitia" />
                 </Cells>
                 <Left />
-                <Right>
-                  <Node id="6">
-                    <Cells>
-                      <Cell Value="1" />
-                      <Cell Value="Glen" />
-                    </Cells>
-                    <Left />
-                    <Right>
-                      <Node id="7">
-                        <Cells>
-                          <Cell Value="4" />
-                          <Cell Value="Glen" />
-                        </Cells>
-                        <Left />
-                        <Right />
-                      </Node>
-                    </Right>
-                  </Node>
-                </Right>
+                <Right />
               </Node>
             </Right>
           </Node>
         </Right>
       </Node>
     </BinaryTree>
+  </Table>
+  <Table name="Animals" currentID="0">
+    <Collumns>
+      <Collumn AnimalID="System.Int32" />
+      <Collumn Name="System.String" />
+      <Collumn TypeOfAnimal="System.String" />
+      <Collumn Male="System.Boolean" />
+    </Collumns>
+    <BinaryTree />
   </Table>
 </Tables>

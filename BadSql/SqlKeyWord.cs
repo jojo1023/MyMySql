@@ -22,7 +22,7 @@ namespace BadSql
             Parent = parent;
             ChildrenAmountRange = childrenAmountRange;
             KeyWordType = keyWordType;
-        }
+         }
     }
     public enum KeyWordTypes
     {
