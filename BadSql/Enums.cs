@@ -8,11 +8,11 @@ namespace BadSql
 {
     public enum Opperations
     {
-        EqualTo,
+        Equal,
         LessThan,
         GreaterThan,
-        LessThanOrEqualTo,
-        GreaterThanOrEqualTo,
-        NotEqualTo
+        LessThanOrEqual,
+        GreaterThanOrEqual,
+        NotEqual
     }
 }

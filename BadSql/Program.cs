@@ -9,7 +9,7 @@ namespace BadSql
 {
     class Program
     {
-        static BinaryTree<Student> tree = new BinaryTree<Student>(2);
+        static BinaryTree<Student> tree = new BinaryTree<Student>();
         static string xmlFile = "SqlData.xml";
         static XDocument xdoc = XDocument.Load(xmlFile);
         static Dictionary<string, Table> tables = new Dictionary<string, Table>();
@@ -58,10 +58,10 @@ namespace BadSql
                             if (input.Count >= 2)
                             {
                                 List<SqlColumn> collums = new List<SqlColumn>();
-                                whereCollum = null;
-                                whereOpperation = Opperations.EqualTo;
+                                whereCollum = new SqlColumn("", typeof(int));
+                                whereOpperation = Opperations.Equal;
                                 whereValue = null;
-                                bool whereWorked = false;
+                                hasWhere = false;
                                 table = null;
                                 SqlKeyWord select = input[0];
                                 SqlKeyWord from = input[1];
@@ -127,23 +127,16 @@ namespace BadSql
                                 if (input.Count >= 3)
                                 {
                                     SqlKeyWord whereKeyWord = input[2];
-                                    whereWorked = GetWhereInfo(whereKeyWord, table, out whereCollum, out whereOpperation, out whereValue);
-                                    if (!whereWorked)
+                                    hasWhere = GetWhereInfo(whereKeyWord, table, out whereCollum, out whereOpperation, out whereValue);
+                                    if (!hasWhere)
                                     {
                                         errors += "Incorect Where Syntax, ";
                                         break;
                                     }
                                 }
 
-                                List<SqlRow> rows;
-                                if (whereWorked)
-                                {
-                                    rows = table.Select(whereCollum.Name, whereOpperation, whereValue);
-                                }
-                                else
-                                {
-                                    rows = table.Select();
-                                }
+                                List<SqlRow> rows = table.Select(hasWhere, whereCollum.Name, whereOpperation, whereValue);
+
                                 output = DisplayTable(table, rows, collums);
                             }
                             break;
@@ -383,8 +376,8 @@ namespace BadSql
 
                         #region Delete
                         case ("delete"):
-                            whereCollum = null;
-                            whereOpperation = Opperations.EqualTo;
+                            whereCollum = new SqlColumn("", typeof(int));
+                            whereOpperation = Opperations.Equal;
                             whereValue = null;
                             hasWhere = false;
                             if (input.Count >= 2 && input[1].Input.ToLower() == "from")
@@ -411,15 +404,7 @@ namespace BadSql
                                         }
                                     }
 
-                                    int amountOfRows;
-                                    if (!hasWhere)
-                                    {
-                                        amountOfRows = table.Delete();
-                                    }
-                                    else
-                                    {
-                                        amountOfRows = table.Delete(whereCollum.Name, whereOpperation, whereValue);
-                                    }
+                                    int amountOfRows = table.Delete(hasWhere, whereCollum.Name, whereOpperation, whereValue);
 
                                     output = amountOfRows.ToString() + " Rows " + "Affected";
                                 }
@@ -476,8 +461,8 @@ namespace BadSql
 
                         #region Update
                         case ("update"):
-                            whereCollum = null;
-                            whereOpperation = Opperations.EqualTo;
+                            whereCollum = new SqlColumn("", typeof(int));
+                            whereOpperation = Opperations.Equal;
                             whereValue = null;
                             hasWhere = false;
                             if (input.Count >= 2 && input[1].Input.ToLower() == "set")
@@ -505,7 +490,7 @@ namespace BadSql
                                     {
                                         break;
                                     }
-                                    List<SetPair> setPairs = new List<SetPair>();
+                                    List<ColumnValuePair> setPairs = new List<ColumnValuePair>();
                                     for (int i = 0; i < CommaGroups.Count; i++)
                                     {
                                         SqlColumn collumnToSet = table[CommaGroups[i].Children[0].Input];
@@ -527,7 +512,7 @@ namespace BadSql
                                                 if (valueObject is IComparable)
                                                 {
                                                     IComparable value = (IComparable)valueObject;
-                                                    setPairs.Add(new SetPair(collumnToSet, value));
+                                                    setPairs.Add(new ColumnValuePair(collumnToSet, value));
                                                 }
                                             }
                                             else
@@ -558,15 +543,9 @@ namespace BadSql
                                             break;
                                         }
                                     }
-                                    int amountOfUpdatedRows;
-                                    if (!hasWhere)
-                                    {
-                                        amountOfUpdatedRows = table.Update(setPairs, out errors);
-                                    }
-                                    else
-                                    {
-                                        amountOfUpdatedRows = table.Update(setPairs, whereCollum.Name, whereOpperation, whereValue, out errors);
-                                    }
+
+                                    int amountOfUpdatedRows = table.Update(hasWhere, setPairs, whereCollum.Name, whereOpperation, whereValue, out errors);
+
                                     if (errors == "")
                                     {
                                         output = amountOfUpdatedRows + " Rows Updated";
@@ -583,6 +562,7 @@ namespace BadSql
                             }
                             break;
                         #endregion
+
                         #region Default
                         default:
                             errors += input[0].Input + " is Not a Starting Command, ";
@@ -603,7 +583,7 @@ namespace BadSql
         public static bool GetWhereInfo(SqlKeyWord WhereKeyWord, Table table, out SqlColumn whereCollum, out Opperations whereOpperation, out IComparable whereValue)
         {
             whereCollum = null;
-            whereOpperation = Opperations.EqualTo;
+            whereOpperation = Opperations.Equal;
             whereValue = null;
             bool whereWorks = false;
             if (WhereKeyWord.Input.ToLower() == "where" && WhereKeyWord.Children.Count >= 3)
@@ -617,7 +597,7 @@ namespace BadSql
                     switch (WhereKeyWord.Children[1].Input)
                     {
                         case ("="):
-                            whereOpperation = Opperations.EqualTo;
+                            whereOpperation = Opperations.Equal;
                             break;
                         case (">"):
                             whereOpperation = Opperations.GreaterThan;
@@ -626,13 +606,13 @@ namespace BadSql
                             whereOpperation = Opperations.LessThan;
                             break;
                         case (">="):
-                            whereOpperation = Opperations.GreaterThanOrEqualTo;
+                            whereOpperation = Opperations.GreaterThanOrEqual;
                             break;
                         case ("<="):
-                            whereOpperation = Opperations.LessThanOrEqualTo;
+                            whereOpperation = Opperations.LessThanOrEqual;
                             break;
                         case ("!="):
-                            whereOpperation = Opperations.NotEqualTo;
+                            whereOpperation = Opperations.NotEqual;
                             break;
                         default:
                             hasOpperation = false;
@@ -1007,7 +987,7 @@ namespace BadSql
                 }
                 tableElement.Add(collumnsElement);
 
-                XElement binaryTree = new XElement("BinaryTree", new XAttribute("BalanceValue", table.Tree.BalanceValue));
+                XElement binaryTree = new XElement("BinaryTree");
                 if (table.Tree.BaseNode != null)
                 {
                     binaryTree = FillXMLBinaryTree(table, table.Tree.BaseNode, binaryTree);
@@ -1052,7 +1032,7 @@ namespace BadSql
             List<int> columnWidths = new List<int>(); //How wide a column each needs to be in characters to fit all the data in it
             int paddingSize = 1;
             int headerLevel = 0;//The current level of the header being displayed 0 = bottom of Table, 1 = bottom of Header, 2 = header, 3 = top of Header 
-            
+
             //Characters for the sides and corners of the table
             char cornerChar = '+';
             char verticalChar = '|';
@@ -1103,7 +1083,7 @@ namespace BadSql
                 else
                 {
                     int oppositeX = columns.Count - 1 - x;
-                    
+
                     //if on first collumn display cornerChar
                     if (oppositeX == 0)
                     {
@@ -1127,7 +1107,7 @@ namespace BadSql
 
             return returnString;
         }
-        
+
         //Displays the value for each column
         public static string DisplayColumns(Table table, List<SqlRow> rows, List<SqlColumn> columns, int rowIndex, int columnIndex, int paddingSize, char verticalChar, List<int> currentColumnWidths, out List<int> columnWidths)
         {
@@ -1170,11 +1150,11 @@ namespace BadSql
             {
                 returnString += Environment.NewLine + nextRow;
             }
-            
+
 
             return returnString;
         }
-        
+
         //Returns a string of a character repeated for a certain amount of time
         public static string RepeatChar(char letter, int amountOfTimes)
         {

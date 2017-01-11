@@ -9,243 +9,96 @@ namespace BadSql
     public class BinaryTree<T> where T : IComparable
     {
         public Node<T> BaseNode { get; set; }
-        public int BalanceValue { get; set; }
-        public BinaryTree(T baseNode, int balanceValue)
+
+        public BinaryTree()
+        {
+        }
+
+        public BinaryTree(T baseNode)
         {
             BaseNode = new Node<T>(baseNode);
-            BalanceValue = balanceValue;
         }
-        public BinaryTree(int balanceValue)
+
+        public Node<T> AddNode(T valueOfNewNode)
         {
-            BalanceValue = balanceValue;
-        }
-        public Node<T> AddNode(T value)
-        {
-            return AddNodePrivate(new Node<T>(value), false);
-        }
-        Node<T> AddNodePrivate(Node<T> node, bool delteting)
-        {
+            Node<T> newNode = new Node<T>(valueOfNewNode);
+            //if base node isn't node find where to put node else set base node to the new node
             if (BaseNode != null)
             {
-                return AddNodeRecursive(node, BaseNode, delteting);
+                AddNodeToTree(newNode);
             }
             else
             {
-                BaseNode = node;
-                return BaseNode;
+                BaseNode = newNode;
             }
+            return newNode;
         }
-        Node<T> AddNodeRecursive(Node<T> newNode, Node<T> currentNode, bool delteting)
+
+        //Delete a node in the tree without deleteing its children
+        public void DeleteNode(T valueOfNodeToDelete)
         {
-            Node<T> node = currentNode;
-            while (true)
+            Node<T> nodeToDelete = GetNode(valueOfNodeToDelete, BaseNode);
+            //if node to delete was found countinue
+            if (nodeToDelete != null)
             {
-                if (newNode.Value.CompareTo(node.Value) > 0)
+                //if node to delete has a left child
+                if (nodeToDelete.Left != null)
                 {
-                    if (node.Right != null)
-                    {
-                        node = node.Right;
-                        //AddNodeRecursive(newNode, node.Right, delteting);
-                    }
-                    else
-                    {
-                        newNode.Parent = node;
-                        node.Right = newNode;
-                        if (node != null && !delteting)
-                        {
-                            //BalanceNode(node);
-                        }
-                        break;
-                    }
-                }
-                else if (newNode.Value.CompareTo(node.Value) < 0)
-                {
-                    if (node.Left != null)
-                    {
-                        node = node.Left;
-                        //AddNodeRecursive(newNode, node.Left, delteting);
-                    }
-                    else
-                    {
-                        newNode.Parent = node;
-                        node.Left = newNode;
-                        if (node != null && !delteting)
-                        {
-                            //BalanceNode(node);
-                        }
-                        break;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-            return node;
-        }
+                    //finds the node with the greatest value to the left of the node to delete
+                    Node<T> greatestNodeInLeftSubtree = FindBottomRightNode(nodeToDelete.Left);
 
-        Node<T> GetNode(T value, Node<T> currentNode)
-        {
-            if (currentNode != null)
-            {
-                if (currentNode.Value.CompareTo(value) == 0)
-                {
-                    return currentNode;
-                }
-                if (currentNode.Left != null && currentNode.Left.Value.CompareTo(value) == 0)
-                {
-                    return currentNode.Left;
-                }
-                else if (currentNode.Left != null && value.CompareTo(currentNode.Left.Value) == -1)
-                {
-                    Node<T> possibleReturn = GetNode(value, currentNode.Left);
-                    if (possibleReturn != null)
+                    //if the greatest node in left subtree has a left child (it won't ever have a right child)
+                    if (greatestNodeInLeftSubtree.Left != null)
                     {
-                        return possibleReturn;
-                    }
-                }
-                if (currentNode.Right != null && currentNode.Right.Value.CompareTo(value) == 0)
-                {
-                    return currentNode.Right;
-                }
-                else if (currentNode.Right != null && value.CompareTo(currentNode.Right.Value) == 1)
-                {
-                    Node<T> possibleReturn = GetNode(value, currentNode.Right);
-                    if (possibleReturn != null)
-                    {
-                        return possibleReturn;
-                    }
-                }
-            }
-            return null;
-        }
-        public void DeleteNode(Node<T> node, bool priorityLeft, bool AddNodeBack, bool dontAddChildren, bool userDelete)
-        {
-            if (node != null)
-            {
-                List<T> nodesToBalance = new List<T>();
-                if (node.Left != null && userDelete)
-                {
-                    nodesToBalance.Add(node.Left.Value);
-                }
-                if (node.Right != null && userDelete)
-                {
-                    nodesToBalance.Add(node.Right.Value);
-                }
-
-                if (node.Parent != null)
-                {
-                    node.Parent.DeleteChild(node);
-                }
-                else
-                {
-                    BaseNode = null;
-                }
-                if (node != null && !dontAddChildren)
-                {
-                    if (priorityLeft)
-                    {
-                        if (node.Left != null)
+                        //if greatest node in left subtree is right of its parent set its parent right child to greatest node in left subtree left child
+                        if (greatestNodeInLeftSubtree.Parent.isRight(greatestNodeInLeftSubtree))
                         {
-                            AddChildren(node.Left);
+                            greatestNodeInLeftSubtree.Parent.Right = greatestNodeInLeftSubtree.Left;
                         }
-                        if (AddNodeBack)
-                        {
-                            AddNodePrivate(new Node<T>(node.Value), true);
-                        }
-                        if (node.Right != null)
-                        {
-                            AddChildren(node.Right);
-                        }
-                    }
-                    else
-                    {
-                        if (node.Right != null)
-                        {
-                            AddChildren(node.Right);
-                        }
-                        if (AddNodeBack)
-                        {
-                            AddNodePrivate(new Node<T>(node.Value), true);
-                        }
-                        if (node.Left != null)
-                        {
-                            AddChildren(node.Left);
-                        }
-                    }
-
-                }
-                foreach (T TNode in nodesToBalance)
-                {
-                    //BalanceNode(GetNode(TNode, BaseNode));
-                }
-            }
-        }
-        public Node<T> DeleteNode(T value, bool priorityLeft, bool AddNodeBack, bool dontAddChildren, bool userDelete)
-        {
-            Node<T> node = GetNode(value, BaseNode);
-            DeleteNode(node, priorityLeft, AddNodeBack, dontAddChildren, userDelete);
-            return node;
-        }
-
-        public void UserDelete(T value)
-        {
-            Node<T> node = GetNode(value, BaseNode);
-            if (node != null)
-            {
-                if (node.Left != null)
-                {
-                    Node<T> greatestLeftSubtree = FindGreatestInLeftSubtree(node.Left);
-                    if (greatestLeftSubtree != null)
-                    {
-                        if (greatestLeftSubtree.Left != null)
-                        {
-                            if (greatestLeftSubtree.Parent.isRight(greatestLeftSubtree))
-                            {
-                                greatestLeftSubtree.Parent.DeleteChild(greatestLeftSubtree);
-                                greatestLeftSubtree.Parent.Right = greatestLeftSubtree.Left;
-                            }
-                            else
-                            {
-                                greatestLeftSubtree.Parent.DeleteChild(greatestLeftSubtree);
-                                greatestLeftSubtree.Parent.Left = greatestLeftSubtree.Left;
-                            }
-
-                            greatestLeftSubtree.Left.Parent = greatestLeftSubtree.Parent;
-                        }
+                        //set greatest node in left subtree parents right child to greatest node in left subtree left child
                         else
                         {
-                            greatestLeftSubtree.Parent.DeleteChild(greatestLeftSubtree);
+                            greatestNodeInLeftSubtree.Parent.Left = greatestNodeInLeftSubtree.Left;
                         }
-                        node.Value = greatestLeftSubtree.Value;
-                        //BalanceNode(greatestLeftSubtree.Parent);
+                        //set greatest node in left subtree left child to its old parent
+                        greatestNodeInLeftSubtree.Left.Parent = greatestNodeInLeftSubtree.Parent;
                     }
-                }
-                else if (node.Right != null)
-                {
-                    Node<T> Parent = node.Parent;
-                    if (Parent != null)
+                    //if greatest node in left subtree doesn't have children delete it from its parent
+                    else
                     {
-                        if (Parent.isRight(node))
+                        greatestNodeInLeftSubtree.Parent.DeleteChild(greatestNodeInLeftSubtree);
+                    }
+                    //set node to delete value to greatest node in left subtree value
+                    nodeToDelete.Value = greatestNodeInLeftSubtree.Value;
+                }
+                //if node to delete doesn't have left child and has right child
+                else if (nodeToDelete.Right != null)
+                {
+                    Node<T> nodeToDeleteParent = nodeToDelete.Parent;
+                    //if node to delete has a parent
+                    if (nodeToDeleteParent != null)
+                    {
+                        //if node to delete is the right child of its parent then set its parents right child to node to deletes right child
+                        if (nodeToDeleteParent.isRight(nodeToDelete))
                         {
-                            Parent.Right = node.Right;
+                            nodeToDeleteParent.Right = nodeToDelete.Right;
                         }
+                        //else set node to deletes parent left child to node to deletes right child
                         else
                         {
-                            Parent.Left = node.Right;
+                            nodeToDeleteParent.Left = nodeToDelete.Right;
                         }
                     }
-                    
-                    node = node.Right;
-                    node.Parent = Parent;
-                    //BalanceNode(node);
+                    //set node to deletes right childs parent to node to delete parent
+                    nodeToDelete.Right.Parent = nodeToDeleteParent;
                 }
+                //if node to delete doesn't have any children
                 else
                 {
-                    if (node.Parent != null)
+                    //if node to delete has parent delete it from its parent else node to delete is the base node so set the base node to null
+                    if (nodeToDelete.Parent != null)
                     {
-                        node.Parent.DeleteChild(node);
-                        //BalanceNode(node.Parent);
+                        nodeToDelete.Parent.DeleteChild(nodeToDelete);
                     }
                     else
                     {
@@ -254,254 +107,190 @@ namespace BadSql
                 }
             }
         }
-
-        Node<T> FindGreatestInLeftSubtree(Node<T> currentNode)
+        
+        //Gets nodes in order of their values asending
+        public List<T> GetNodesInOrder()
         {
-            if (currentNode != null && currentNode.Right != null)
-            {
-                return FindGreatestInLeftSubtree(currentNode.Right);
-            }
-            return currentNode;
+            return GetNodesSortedBetweenToNodes(GetBottomLeftNode(BaseNode), BaseNode, new List<T>());
         }
 
-        public void AddChildren(Node<T> node)
-        {
-            AddNodePrivate(new Node<T>(node.Value), true);
-            if (node.Left != null)
-            {
-                AddChildren(node.Left);
-            }
-            if (node.Right != null)
-            {
-                AddChildren(node.Right);
-            }
-        }
-        public void BalanceNode(Node<T> node)
-        {
-            int leftPathCount = 0;
-            int rightPathCount = 0;
-            if (node.Left != null)
-            {
-                leftPathCount = node.Left.LongestPathCount();
-                leftPathCount++;
-            }
-            if (node.Right != null)
-            {
-                rightPathCount = node.Right.LongestPathCount();
-                rightPathCount++;
-            }
-
-            int differnece = Math.Abs(leftPathCount - rightPathCount);
-            if (leftPathCount - rightPathCount >= BalanceValue)//left larger
-            {
-                //for(int i = 0; i < differnece; i++)
-                //{
-                Node<T> rightDeletedNode = null;
-                if (node.Left != null && node.Left.Right != null)
-                {
-                    rightDeletedNode = DeleteNode(node.Left.Right.Value, true, false, true, false);
-                }
-
-                if (rightDeletedNode != null)
-                {
-                    if (node.Left.Left != null)
-                    {
-                        Node<T> deletedNode = DeleteNode(node.Value, true, true, false, false);
-                        AddNodePrivate(rightDeletedNode, true);
-                    }
-                    else
-                    {
-                        DeleteNode(node, true, false, false, false);
-                        AddNodePrivate(rightDeletedNode, true);
-                        AddNodePrivate(node, true);
-                    }
-                }
-                else
-                {
-                    Node<T> deletedNode = DeleteNode(node.Value, true, false, false, false);
-                    AddNodePrivate(new Node<T>(deletedNode.Value), true);
-                }
-                //}
-            }
-            else if (rightPathCount - leftPathCount >= BalanceValue)//right larger
-            {
-                //for (int i = 0; i < differnece; i++)
-                //
-                Node<T> leftDeletedNode = null;
-                if (node.Right != null && node.Right.Left != null)
-                {
-                    leftDeletedNode = DeleteNode(node.Right.Left.Value, false, false, true, false);
-                }
-
-                if (leftDeletedNode != null)
-                {
-                    if (node.Right.Right != null)
-                    {
-                        Node<T> deletedNode = DeleteNode(node.Value, false, true, false, false);
-                        AddNodePrivate(leftDeletedNode, true);
-                    }
-                    else
-                    {
-                        DeleteNode(node, false, false, false, false);
-                        AddNodePrivate(leftDeletedNode, true);
-                        AddNodePrivate(node, true);
-                    }
-                }
-                else
-                {
-                    Node<T> deletedNode = DeleteNode(node.Value, false, false, false, false);
-                    AddNodePrivate(new Node<T>(deletedNode.Value), true);
-                }
-                //}
-            }
-            if (node.Parent != null)
-            {
-                BalanceNode(node.Parent);
-            }
-        }
-        public int GetNodeBalance(Node<T> node)
-        {
-            int rightWeight = 0;
-            int leftWeight = 0;
-            if (node.Right != null)
-            {
-                rightWeight = node.Right.LongestPathCount() + 1;
-            }
-            if (node.Left != null)
-            {
-                leftWeight = node.Left.LongestPathCount() + 1;
-            }
-            return rightWeight - leftWeight;
-        }
-        public int amountOfLeafs()
-        {
-            return amountOfLeafsRecursive(BaseNode, 0);
-        }
-        public int amountOfLeafs(Node<T> node)
-        {
-            return amountOfLeafsRecursive(node, 0);
-        }
-        int amountOfLeafsRecursive(Node<T> currentNode, int currentAmount)
-        {
-            int amount = currentAmount;
-
-            if (currentNode != null)
-            {
-                if (currentNode.Left != null || currentNode.Right != null)
-                {
-                    if (currentNode.Left != null)
-                    {
-                        amount = amountOfLeafsRecursive(currentNode.Left, amount);
-                    }
-                    if (currentNode.Right != null)
-                    {
-                        amount = amountOfLeafsRecursive(currentNode.Right, amount);
-                    }
-                }
-                else
-                {
-                    amount++;
-                }
-            }
-
-            return amount;
-        }
-        public List<T> GetNodes()
-        {
-            return GetNodesRecursive(BaseNode, new List<T>());
-        }
-        List<T> GetNodesRecursive(Node<T> currentNode, List<T> currentList)
-        {
-            List<T> returnList = currentList;
-
-            if (currentNode != null)
-            {
-                returnList.Add(currentNode.Value);
-                if (currentNode.Left != null)
-                {
-                    returnList = GetNodesRecursive(currentNode.Left, returnList);
-                }
-                if (currentNode.Right != null)
-                {
-                    returnList = GetNodesRecursive(currentNode.Right, returnList);
-                }
-            }
-
-            return returnList;
-        }
-
-        public Node<T> GetBottomLeft(Node<T> currentNode)
-        {
-            if(currentNode != null && currentNode.Left != null)
-            {
-                return GetBottomLeft(currentNode.Left);
-            }
-            return currentNode;
-        }
-
-        public List<T> GetNodesSorted()
-        {
-            return GetRowsInOrder(GetBottomLeft(BaseNode), BaseNode, new List<T>());
-        }
-
-        List<T> GetRowsInOrder(Node<T> currentNode, Node<T> stopNode, List<T> currentList)
-        {
-            if (currentNode != null)
-            {
-                currentList.Add(currentNode.Value);
-
-                if (currentNode.Right != null)
-                {
-                    currentList = GetNodesToRight(currentNode.Right, currentList);
-                }
-                if (currentNode.Parent != null && currentNode != stopNode)
-                {
-                    currentList = GetRowsInOrder(currentNode.Parent, stopNode, currentList);
-                }
-            }
-            return currentList;
-        }
-
-        List<T> GetNodesToRight(Node<T> currentNode, List<T> currentList)
-        {
-            if (currentNode != null)
-            {
-                if (currentNode.Left != null)
-                {
-                    currentList = GetRowsInOrder(GetBottomLeft(currentNode.Left), currentNode.Left, currentList);
-                }
-                currentList.Add(currentNode.Value);
-                if (currentNode.Right != null)
-                {
-                    currentList = GetNodesToRight(currentNode.Right, currentList);
-                }
-            }
-            return currentList;
-        }
-
-        #region sort
+        //Sorts the nodes in the tree into a more balanced orientation
         public void Sort()
         {
-            List<T> input = GetNodesSorted();
-            List<T> returnList = new List<T>();
-            while (input.Count > 0)
-            {
-                returnList = insert(input[input.Count - 1], returnList);
-                input.Remove(input[input.Count - 1]);
-            }
-            List<T> balanceList = balanceSort(returnList, new List<T>());
-            BaseNode = null;
-            for(int i = 0; i < balanceList.Count; i++)
+            List<T> nodesInOrder = GetNodesInOrder();
+            List<T> balanceList = balanceSort(nodesInOrder, new List<T>());
+            BaseNode = null;//Delete the entire tree
+
+            //Adds every node back into the tree but in a balanced order
+            for (int i = 0; i < balanceList.Count; i++)
             {
                 AddNode(balanceList[i]);
             }
         }
 
+        //Adds a node to tree in the proper place
+        void AddNodeToTree(Node<T> newNode)
+        {
+            Node<T> currentNode = BaseNode;
+
+            while (true)
+            {
+                //if new node is greater than the current node
+                if (newNode.Value.CompareTo(currentNode.Value) > 0)
+                {
+                    //if current node has a right node then the current node is the current nodes right child else currentNodes right child becomes the new node
+                    if (currentNode.Right != null)
+                    {
+                        currentNode = currentNode.Right;
+                    }
+                    else
+                    {
+                        newNode.Parent = currentNode;
+                        currentNode.Right = newNode;
+                        break;
+                    }
+                }
+                //if new node is equal to the current node
+                else if (newNode.Value.CompareTo(currentNode.Value) < 0)
+                {
+                    //if current node has a left node then the current node is the current nodes left child else currentNodes left child becomes the new node
+                    if (currentNode.Left != null)
+                    {
+                        currentNode = currentNode.Left;
+                    }
+                    else
+                    {
+                        newNode.Parent = currentNode;
+                        currentNode.Left = newNode;
+                        break;
+                    }
+                }
+                //else node is equal to node so break because tree doesn't allow duplicate data
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        //Gets a node in the table from its value
+        Node<T> GetNode(T value, Node<T> currentNode)
+        {
+            if (currentNode != null)
+            {
+                //if current nodes value is equal to value return current node
+                if (currentNode.Value.CompareTo(value) == 0)
+                {
+                    return currentNode;
+                }
+                //if current nodes left childs value is equal to value return current nodes left child
+                if (currentNode.Left != null && currentNode.Left.Value.CompareTo(value) == 0)
+                {
+                    return currentNode.Left;
+                }
+                //else if value is greater than current nodes left childs value then seach there
+                else if (currentNode.Left != null && value.CompareTo(currentNode.Left.Value) == -1)
+                {
+                    Node<T> possibleReturn = GetNode(value, currentNode.Left);
+                    //if found value return possible return
+                    if (possibleReturn != null)
+                    {
+                        return possibleReturn;
+                    }
+                }
+                //if current nodes right childs value is equal to value return current nodes right child
+                if (currentNode.Right != null && currentNode.Right.Value.CompareTo(value) == 0)
+                {
+                    return currentNode.Right;
+                }
+                //else if value is greater than current nodes right childs value then seach there
+                else if (currentNode.Right != null && value.CompareTo(currentNode.Right.Value) == 1)
+                {
+                    Node<T> possibleReturn = GetNode(value, currentNode.Right);
+                    //if found value return possible return
+                    if (possibleReturn != null)
+                    {
+                        return possibleReturn;
+                    }
+                }
+            }
+            return null;
+        }
+
+        //Gets the node that is all the way to the left (the node with the smallest value) starting from the current node
+        Node<T> GetBottomLeftNode(Node<T> currentNode)
+        {
+            //if current node has a left keep searching to the left
+            if (currentNode != null && currentNode.Left != null)
+            {
+                return GetBottomLeftNode(currentNode.Left);
+            }
+            return currentNode;
+        }
+
+        //Gets the node that is all the way to the right (the node with the greatest value) starting from the current node
+        Node<T> FindBottomRightNode(Node<T> currentNode)
+        {
+            //if current node has a left keep searching to the right
+            if (currentNode != null && currentNode.Right != null)
+            {
+                return FindBottomRightNode(currentNode.Right);
+            }
+            return currentNode;
+        }
+        
+        //Gets all the nodes from the current node to the stop node
+        List<T> GetNodesSortedBetweenToNodes(Node<T> currentNode, Node<T> stopNode, List<T> currentList)
+        {
+            if (currentNode != null)
+            {
+                currentList.Add(currentNode.Value);
+
+                //if current node has a right child add its descendants
+                if (currentNode.Right != null)
+                {
+                    currentList = GetAllDescendants(currentNode.Right, currentList);
+                }
+                //if current node has a parent and it is not the stop node countinue finding nodes
+                if (currentNode.Parent != null && currentNode != stopNode)
+                {
+                    currentList = GetNodesSortedBetweenToNodes(currentNode.Parent, stopNode, currentList);
+                }
+            }
+            return currentList;
+        }
+
+        //Gets all the descendants of the current node
+        List<T> GetAllDescendants(Node<T> currentNode, List<T> currentList)
+        {
+            if (currentNode != null)
+            {
+                //if current node has a left child get nodes from current nodes left ost node to current nodes left child
+                if (currentNode.Left != null)
+                {
+                    currentList = GetNodesSortedBetweenToNodes(GetBottomLeftNode(currentNode.Left), currentNode.Left, currentList);
+                }
+
+                currentList.Add(currentNode.Value);
+
+                //if current node has a right child get all of current nodes right child descendants
+                if (currentNode.Right != null)
+                {
+                    currentList = GetAllDescendants(currentNode.Right, currentList);
+                }
+            }
+            return currentList;
+        }
+
+        //returns a list of nodes in a balanced order
         List<T> balanceSort(List<T> sortedList, List<T> currentList)
         {
+            //if the sorted tlist isn't empty
             if (sortedList.Count > 0)
             {
-                List<List<T>> nextLists = new List<List<T>>();
+                List<List<T>> nextLists = new List<List<T>>();//a list of the next lists to be added to the current list
+
+                //Removes the middle item from the sorted list and adds the elements to the left and right of it to next lists
                 if (sortedList.Count % 2 == 0)
                 {
                     currentList.Add(sortedList[sortedList.Count / 2 - 1]);
@@ -518,6 +307,8 @@ namespace BadSql
                     nextLists.Add(sortedList.Take(sortedList.Count / 2 - 1).ToList());
                     nextLists.Add(sortedList.Skip(sortedList.Count / 2 - 1).ToList());
                 }
+
+                //balances the next lists to get a complete balanced list
                 foreach (List<T> list in nextLists)
                 {
                     currentList = (balanceSort(list, currentList));
@@ -525,35 +316,5 @@ namespace BadSql
             }
             return currentList;
         }
-
-
-
-        List<T> insert(T number, List<T> input)
-        {
-            List<T> returnList = input;
-            bool added = false;
-            for (int i = 0; i < returnList.Count; i++)
-            {
-                if (number.CompareTo(returnList[i]) <= 0)  //(number.Id <= returnList[i].Id)
-                {
-                    added = true;
-                    T previousNum = number;
-                    for (int j = i; j < returnList.Count; j++)
-                    {
-                        T temp = returnList[j];
-                        returnList[j] = previousNum;
-                        previousNum = temp;
-                    }
-                    returnList.Add(previousNum);
-                    break;
-                }
-            }
-            if (!added)
-            {
-                returnList.Add(number);
-            }
-            return returnList;
-        }
-        #endregion
     }
 }

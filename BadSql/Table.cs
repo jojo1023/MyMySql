@@ -26,7 +26,7 @@ namespace BadSql
             Name = name;
             SqlColumns = sqlColumns.ToList();
             SqlColumnIndicesByName = SqlColumns.Select((col, ind) => new { Column = col, Index = ind }).ToDictionary(col => col.Column.Name, col => col.Index);
-            Tree = new BinaryTree<SqlRow>(2);
+            Tree = new BinaryTree<SqlRow>();
         }
         public SqlRow AddRow(params IComparable[] values)
         {
@@ -35,72 +35,72 @@ namespace BadSql
             currentId++;
             return newRow;
         }
+
         public void AddRow(SqlRow newRow)
         {
             Tree.AddNode(newRow);
         }
 
-        public List<SqlRow> Select(string columnName, Opperations opperation, IComparable value)
+        public List<SqlRow> Select(bool hasWhereClause, string columnName, Opperations opperation, IComparable value)
         {
-            List<SqlRow> sortedRows = Tree.GetNodesSorted();
-            List<SqlRow> returnRows = new List<SqlRow>();
-            int temp;
-            if (SqlColumnIndicesByName.TryGetValue(columnName, out temp) && SqlColumns[temp].VarType == value.GetType())
+            List<SqlRow> sortedRows = Tree.GetNodesInOrder();
+            if (hasWhereClause)
             {
-                foreach (SqlRow row in sortedRows)
+                List<SqlRow> returnRows = new List<SqlRow>();
+                int temp;
+                if (SqlColumnIndicesByName.TryGetValue(columnName, out temp) && SqlColumns[temp].VarType == value.GetType())
                 {
-                    IComparable currentRowValue = row[columnName].Value;
-                    switch (opperation)
+                    foreach (SqlRow row in sortedRows)
                     {
-                        case (Opperations.EqualTo):
-                            if (currentRowValue.Equals(value))
-                            {
-                                returnRows.Add(row);
-                            }
-                            break;
-                        case (Opperations.GreaterThan):
-                            if (currentRowValue.CompareTo(value) > 0)
-                            {
-                                returnRows.Add(row);
-                            }
-                            break;
-                        case (Opperations.LessThan):
-                            if (currentRowValue.CompareTo(value) < 0)
-                            {
-                                returnRows.Add(row);
-                            }
-                            break;
-                        case (Opperations.GreaterThanOrEqualTo):
-                            if (currentRowValue.CompareTo(value) >= 0)
-                            {
-                                returnRows.Add(row);
-                            }
-                            break;
-                        case (Opperations.LessThanOrEqualTo):
-                            if (currentRowValue.CompareTo(value) <= 0)
-                            {
-                                returnRows.Add(row);
-                            }
-                            break;
-                        case (Opperations.NotEqualTo):
-                            if (!currentRowValue.Equals(value))
-                            {
-                                returnRows.Add(row);
-                            }
-                            break;
+                        IComparable currentRowValue = row[columnName].Value;
+                        switch (opperation)
+                        {
+                            case (Opperations.Equal):
+                                if (currentRowValue.Equals(value))
+                                {
+                                    returnRows.Add(row);
+                                }
+                                break;
+                            case (Opperations.GreaterThan):
+                                if (currentRowValue.CompareTo(value) > 0)
+                                {
+                                    returnRows.Add(row);
+                                }
+                                break;
+                            case (Opperations.LessThan):
+                                if (currentRowValue.CompareTo(value) < 0)
+                                {
+                                    returnRows.Add(row);
+                                }
+                                break;
+                            case (Opperations.GreaterThanOrEqual):
+                                if (currentRowValue.CompareTo(value) >= 0)
+                                {
+                                    returnRows.Add(row);
+                                }
+                                break;
+                            case (Opperations.LessThanOrEqual):
+                                if (currentRowValue.CompareTo(value) <= 0)
+                                {
+                                    returnRows.Add(row);
+                                }
+                                break;
+                            case (Opperations.NotEqual):
+                                if (!currentRowValue.Equals(value))
+                                {
+                                    returnRows.Add(row);
+                                }
+                                break;
+                        }
+
                     }
-
                 }
+
+                return returnRows;
             }
-
-            return returnRows;
+            return sortedRows;
         }
-
-        public List<SqlRow> Select()
-        {
-            return Tree.GetNodesSorted();
-        }
-
+        
         public SqlColumn this[string colName]
         {
             get
@@ -114,7 +114,6 @@ namespace BadSql
                 return SqlColumns[colInd];
             }
         }
-        // Select((row) => row.GetHashCode() <= 2)
 
         protected internal IDictionary<string, int> SqlColumnIndicesByName { get; private set; }
 
@@ -123,65 +122,31 @@ namespace BadSql
             Tree.Sort();
         }
 
-        public int Delete(string columnName, Opperations opperation, IComparable value)
+        public int Delete(bool hasWhereClause, string columnName, Opperations opperation, IComparable value)
         {
             int returnInt = 0;
-            List<SqlRow> itemsToDelete = Select(columnName, opperation, value);
+            List<SqlRow> itemsToDelete = Select(hasWhereClause, columnName, opperation, value);
             foreach (SqlRow row in itemsToDelete)
             {
-                Tree.UserDelete(row);
-                returnInt++;
-            }
-            return returnInt;
-        }
-        public int Delete()
-        {
-            int returnInt = 0;
-            List<SqlRow> itemsToDelete = Select();
-            foreach (SqlRow row in itemsToDelete)
-            {
-                Tree.UserDelete(row);
+                Tree.DeleteNode(row);
                 returnInt++;
             }
             return returnInt;
         }
 
-        public int Update(List<SetPair> setPairs, string columnName, Opperations opperation, IComparable whereValue, out string errors)
+        public int Update(bool hasWhereClause, List<ColumnValuePair> setPairs, string columnName, Opperations opperation, IComparable whereValue, out string errors)
         {
             int returnInt = 0;
             errors = "";
-            List<SqlRow> itemsToUpdate = Select(columnName, opperation, whereValue);
-            foreach (SetPair setPair in setPairs)
+            List<SqlRow> itemsToUpdate = Select(hasWhereClause, columnName, opperation, whereValue);
+            foreach (ColumnValuePair setPair in setPairs)
             {
                 returnInt++;
-                if (setPair.Collum.VarType == setPair.Value.GetType())
+                if (setPair.Column.VarType == setPair.Value.GetType())
                 {
                     foreach (SqlRow row in itemsToUpdate)
                     {
-                        row[setPair.Collum.Name].Value = setPair.Value;
-                    }
-                }
-                else
-                {
-                    errors += "Values Don't Match Collumn Types, ";
-                    break;
-                }
-            }
-            return returnInt;
-        }
-        public int Update(List<SetPair> setPairs, out string errors)
-        {
-            int returnInt = 0;
-            errors = "";
-            List<SqlRow> itemsToUpdate = Select();
-            foreach (SetPair setPair in setPairs)
-            {
-                returnInt++;
-                if (setPair.Collum.VarType == setPair.Value.GetType())
-                {
-                    foreach (SqlRow row in itemsToUpdate)
-                    {
-                        row[setPair.Collum.Name].Value = setPair.Value;
+                        row[setPair.Column.Name].Value = setPair.Value;
                     }
                 }
                 else
@@ -205,14 +170,14 @@ namespace BadSql
             Name = tableElement.Attribute("name").Value;
             SqlColumns = collumns;
             SqlColumnIndicesByName = SqlColumns.Select((col, ind) => new { Column = col, Index = ind }).ToDictionary(col => col.Column.Name, col => col.Index);
-            Tree = new BinaryTree<SqlRow>(2);
+            Tree = new BinaryTree<SqlRow>();
 
             if (tableElement.Element("BinaryTree").HasElements)
             {
                 Tree.BaseNode = FillBinaryTreeFromXML(null, tableElement.Element("BinaryTree").Element("Node"));
             }
         }
-        public Node<SqlRow> FillBinaryTreeFromXML(Node<SqlRow> lastNode, XElement currentElement)
+        Node<SqlRow> FillBinaryTreeFromXML(Node<SqlRow> lastNode, XElement currentElement)
         {
             List<IComparable> values = new List<IComparable>();
             foreach (XElement cellElement in currentElement.Element("Cells").Elements())
@@ -233,16 +198,6 @@ namespace BadSql
             }
 
             return currentNode;
-        }
-    }
-    public class SetPair
-    {
-        public SqlColumn Collum { get; set; }
-        public IComparable Value { get; set; }
-        public SetPair(SqlColumn collumn, IComparable value)
-        {
-            Collum = collumn;
-            Value = value;
         }
     }
 
