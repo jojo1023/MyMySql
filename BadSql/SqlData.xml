@@ -43,13 +43,4 @@
       </Node>
     </BinaryTree>
   </Table>
-  <Table name="Animals" currentID="0">
-    <Collumns>
-      <Collumn AnimalID="System.Int32" />
-      <Collumn Name="System.String" />
-      <Collumn TypeOfAnimal="System.String" />
-      <Collumn Male="System.Boolean" />
-    </Collumns>
-    <BinaryTree />
-  </Table>
 </Tables>

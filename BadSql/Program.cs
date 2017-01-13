@@ -133,7 +133,7 @@ namespace BadSql
                                     }
                                 }
 
-                                List<SqlRow> rows = table.Select(hasWhere, whereCollum.Name, whereOpperation, whereValue);
+                                List<SqlRow> rows = table.Select(hasWhere, whereCollum, whereOpperation, whereValue);
                                 input.RemoveAt(0);
                                 input.RemoveAt(0);
                                 if (hasWhere)
@@ -419,7 +419,7 @@ namespace BadSql
                                         }
                                     }
 
-                                    int amountOfRows = table.Delete(hasWhere, whereCollum.Name, whereOpperation, whereValue);
+                                    int amountOfRows = table.Delete(hasWhere, whereCollum, whereOpperation, whereValue);
 
                                     output = amountOfRows.ToString() + " Rows " + "Affected";
                                     input.RemoveAt(0);
@@ -569,7 +569,7 @@ namespace BadSql
                                         }
                                     }
 
-                                    int amountOfUpdatedRows = table.Update(hasWhere, setPairs, whereCollum.Name, whereOpperation, whereValue, out errors);
+                                    int amountOfUpdatedRows = table.Update(hasWhere, setPairs, whereCollum, whereOpperation, whereValue, out errors);
 
                                     if (errors == "")
                                     {
@@ -1012,10 +1012,10 @@ namespace BadSql
                 tableElement.Add(new XAttribute("name", tableList[i].Key));
                 tableElement.Add(new XAttribute("currentID", table.CurrentID));
 
-                XElement collumnsElement = new XElement("Collumns");
+                XElement collumnsElement = new XElement("Columns");
                 foreach (SqlColumn collumn in table.SqlColumns)
                 {
-                    XElement currentCollumn = new XElement("Collumn");
+                    XElement currentCollumn = new XElement("Column");
                     currentCollumn.Add(new XAttribute(collumn.Name, collumn.VarType));
                     collumnsElement.Add(currentCollumn);
                 }
@@ -1058,8 +1058,14 @@ namespace BadSql
             currentElement.Add(newNode);
             return currentElement;
         }
-
-        //Returns a string that displays the table with ASCII
+        
+        /// <summary>
+        /// Displays a table and its data
+        /// </summary>
+        /// <param name="table">The table to diplay</param>
+        /// <param name="rows">The rows to display</param>
+        /// <param name="columns">The collumns to display</param>
+        /// <returns>Returns a string that represents the table with ASCII</returns>
         public static string DisplayTable(Table table, List<SqlRow> rows, List<SqlColumn> columns)
         {
             string returnString = "";
