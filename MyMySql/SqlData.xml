@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Tables>
+  <Table name="Students" currentID="11">
+    <Columns>
+      <Column StudentID="System.Int32" />
+      <Column Name="System.String" />
+    </Columns>
+    <BinaryTree>
+      <Node id="8">
+        <Cells>
+          <Cell Value="1" />
+          <Cell Value="glen" />
+        </Cells>
+        <Left>
+          <Node id="2">
+            <Cells>
+              <Cell Value="0" />
+              <Cell Value="josiah" />
+            </Cells>
+            <Left />
+            <Right />
+          </Node>
+        </Left>
+        <Right>
+          <Node id="9">
+            <Cells>
+              <Cell Value="2" />
+              <Cell Value="ethan" />
+            </Cells>
+            <Left />
+            <Right>
+              <Node id="10">
+                <Cells>
+                  <Cell Value="3" />
+                  <Cell Value="amitia" />
+                </Cells>
+                <Left />
+                <Right />
+              </Node>
+            </Right>
+          </Node>
+        </Right>
+      </Node>
+    </BinaryTree>
+  </Table>
+</Tables>
