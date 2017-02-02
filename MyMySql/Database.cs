@@ -202,6 +202,31 @@ namespace MyMySql
             commands.Add(createTableCommand);
             #endregion
 
+            #region JoinRegion
+
+            keywordDictionary.Add("inner", new Keyword("inner", new List<List<WordRange>>() { nothingWordRange }));
+
+            List<List<WordRange>> joinRanges = new List<List<WordRange>>();
+            joinRanges.Add(new List<WordRange>() { new WordRange(1, 2, new TableWord("", "", null, ParseCustomSyntax, false)) });
+            keywordDictionary.Add("join", new Keyword("join", joinRanges));
+
+            List<List<WordRange>> onRanges = new List<List<WordRange>>();
+            List<List<WordRange>> onLogicRanges = new List<List<WordRange>>();
+            onLogicRanges.Add(new List<WordRange>() { new WordRange(2, 3, new ColumnWord("", null, null, ParseCustomSyntax, false)) });
+            onRanges.Add(new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("", null, ParseLogicOpperationSyntax, onLogicRanges))});
+            keywordDictionary.Add("on", new Keyword("on", onRanges));
+
+            List<List<CommandKeywordInfo>> joinCommandInfo = new List<List<CommandKeywordInfo>>();
+            joinCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["inner"], KeywordRangesThatDontWork = new List<List<WordRange>>()},
+                                                                 new CommandKeywordInfo() {CommandKeyword = keywordDictionary["join"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
+                                                                 new CommandKeywordInfo() {CommandKeyword = keywordDictionary["on"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
+
+            joinCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() {CommandKeyword = keywordDictionary["select"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
+                                                                 new CommandKeywordInfo() {CommandKeyword = keywordDictionary["from"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
+                                                                 new CommandKeywordInfo() {CommandKeyword = keywordDictionary["join"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
+                                                                 new CommandKeywordInfo() {CommandKeyword = keywordDictionary["on"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
+            commands.Add(new Command(joinCommandInfo));
+            #endregion
 
             #endregion
 
@@ -882,7 +907,7 @@ namespace MyMySql
         {
             CompilerInfo returnInfo = new CompilerInfo() { Lexemes = lexemes, Errors = new List<string>() };
             //loops throught the lexemes to find the opperations
-            for (int i = 0; i < returnInfo.Lexemes.Count; i++)
+            for (int i = returnInfo.Lexemes.Count - 1; i >= 0; i--)
             {
                 //if the current lexeme is an opperation lexeme then find the rest of the opperation and change this lexeme to an opperation
                 if (returnInfo.Lexemes[i].WordType == WordTypes.Language)
@@ -1640,7 +1665,7 @@ namespace MyMySql
                         break;
                     }
                 }
-                else
+                else if(command.CustomCustomsInCommand.Count > 0)
                 {
                     returnInfo.Errors.Add("Command Expects one Table");
                     break;
