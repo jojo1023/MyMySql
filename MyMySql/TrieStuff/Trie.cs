@@ -11,9 +11,18 @@ namespace MyMySql.TrieStuff
     public class Trie
     {
         public TrieNode BaseNode { get; set; }
-        public Trie()
+        public Trie InputCommandTrie { get; set; }
+        public Trie(bool isInputCommandTrie)
         {
             BaseNode = new TrieNode(null, null, new List<TrieNode>(), false, null);
+            if (isInputCommandTrie)
+            {
+                InputCommandTrie = null;
+            }
+            else
+            {
+                InputCommandTrie = new Trie(true);
+            }
         }
         public TrieNode AddNode(Keyword value, TrieNode parent, bool endOfCommand, Command fullCommand)
         {
@@ -31,7 +40,29 @@ namespace MyMySql.TrieStuff
                     currentKeyword.Children = new List<IWord>(keywords[keywordIndex].Children);
                     if (child.Value.Input == keywords[keywordIndex].Input && ListContainsRanges(keywords[keywordIndex].RangesThatWorked, child.Value.ChildrenRanges) >= 0)
                     {
-                        if (keywordIndex + 1 >= keywords.Count && child.EndOfCommand)
+                        Command inputCommand = null;
+                        List<Keyword> inputCommandKeyword = new List<Keyword>(keywords);
+                        inputCommandKeyword.RemoveRange(0, keywordIndex + 1);
+                        if (child.EndOfCommand)
+                        {
+                            if (InputCommandTrie != null)
+                            {
+                                inputCommand = InputCommandTrie.GetCommand(inputCommandKeyword, InputCommandTrie.BaseNode, 0);
+                            }
+                            else
+                            {
+                                inputCommand = GetCommand(inputCommandKeyword, BaseNode, 0);
+                            }
+                        }
+                        if (inputCommand != null)
+                        {
+                            if (inputCommand.Input.InputType == child.FullCommand.Output &&
+                            !inputCommand.Input.KeywordsNotAllowedAsInput.Contains(child.Value.Input))
+                            {
+                                return new Command(new List<List<CommandKeywordInfo>>() { new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = currentKeyword, KeywordRangesThatDontWork = new List<List<WordRange>>() } } }, inputCommand, child.FullCommand);
+                            }
+                        }
+                        else if (keywordIndex + 1 >= keywords.Count && child.EndOfCommand)
                         {
                             return new Command(new List<List<CommandKeywordInfo>>() { new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = currentKeyword, KeywordRangesThatDontWork = new List<List<WordRange>>() } } }, child.FullCommand);
                         }
@@ -51,9 +82,16 @@ namespace MyMySql.TrieStuff
         }
         public void AddCommand(Command command)
         {
-            foreach (List<CommandKeywordInfo> keywordsInfo in command.KeywordsInCommand)
+            if (command.Input.InputType == null || InputCommandTrie == null)
             {
-                BaseNode = AddKeywordChain(keywordsInfo, 0, BaseNode, command);
+                foreach (List<CommandKeywordInfo> keywordsInfo in command.KeywordsInCommand)
+                {
+                    BaseNode = AddKeywordChain(keywordsInfo, 0, BaseNode, command);
+                }
+            }
+            else
+            {
+                InputCommandTrie.AddCommand(command);
             }
         }
         TrieNode AddKeywordChain(List<CommandKeywordInfo> keywordsInfo, int keywordIndex, TrieNode currentNode, Command dictionaryCommand)
@@ -80,13 +118,13 @@ namespace MyMySql.TrieStuff
                         currentNode.FillChildrenWordRanges();
                         if (keywordIndex + 1 < keywordsInfo.Count)
                         {
-                            AddKeywordChain(keywordsInfo, keywordIndex + 1, newNode, null);
+                            AddKeywordChain(keywordsInfo, keywordIndex + 1, newNode, dictionaryCommand);
                         }
 
                     }
                     else if (keywordIndex + 1 < keywordsInfo.Count)
                     {
-                        AddKeywordChain(keywordsInfo, keywordIndex + 1, currentNode.Children[containsRanges], null);
+                        AddKeywordChain(keywordsInfo, keywordIndex + 1, currentNode.Children[containsRanges], dictionaryCommand);
                     }
                 }
             }
@@ -131,9 +169,9 @@ namespace MyMySql.TrieStuff
         int ListContainsKeyword(string keywordInput, List<TrieNode> nodes)
         {
             int returnInt = -1;
-            for(int i = 0; i < nodes.Count; i++)
+            for (int i = 0; i < nodes.Count; i++)
             {
-                if(nodes[i].Value.Input == keywordInput)
+                if (nodes[i].Value.Input == keywordInput)
                 {
                     return i;
                 }
@@ -145,7 +183,7 @@ namespace MyMySql.TrieStuff
         {
             List<CommandKeywordInfo> retunList = new List<CommandKeywordInfo>();
             retunList.Add(new CommandKeywordInfo() { CommandKeyword = endNode.Value, KeywordRangesThatDontWork = new List<List<WordRange>>() });
-            if(endNode.Parent != null && endNode.Parent != BaseNode)
+            if (endNode.Parent != null && endNode.Parent != BaseNode)
             {
                 retunList.AddRange(GetKeywordsFromEnd(endNode.Parent));
             }

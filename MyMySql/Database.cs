@@ -44,7 +44,7 @@ namespace MyMySql
         Dictionary<string, FunctionWord> functionDictionary = new Dictionary<string, FunctionWord>();
 
         List<Command> commands = new List<Command>();
-        Trie commandTrie = new Trie();
+        Trie commandTrie = new Trie(false);
         public Database(XDocument xdoc)
         {
             typeDictionary.Add("int", typeof(int));
@@ -123,11 +123,13 @@ namespace MyMySql
             selectCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["select"],  KeywordRangesThatDontWork = new List<List<WordRange>>()},
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["from"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
 
-            selectCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["select"],  KeywordRangesThatDontWork = new List<List<WordRange>>()},
-                                                                   new CommandKeywordInfo() { CommandKeyword = keywordDictionary["from"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
-                                                                   new CommandKeywordInfo() { CommandKeyword = keywordDictionary["where"], KeywordRangesThatDontWork = new List<List<WordRange>>() }});
-            Command selectCommand = new Command(selectCommandInfo);
+            Command selectCommand = new Command(selectCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, typeof(Table));
             commands.Add(selectCommand);
+            Command whereCommand = new Command(new List<List<CommandKeywordInfo>>()
+                                              { new List<CommandKeywordInfo>()
+                                              { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["where"], KeywordRangesThatDontWork = new List<List<WordRange>>() } } },
+                                              new InputInfo() { InputType = typeof(Table), KeywordsNotAllowedAsInput = new List<string>() { "where" } }, typeof(Table));
+            commands.Add(whereCommand);
             #endregion
 
             #region insertCommand
@@ -156,7 +158,7 @@ namespace MyMySql
             insertCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["insert"],  KeywordRangesThatDontWork = new List<List<WordRange>>() { keywordDictionary["insert"].ChildrenRanges[0] } },
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["into"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["values"], KeywordRangesThatDontWork = new List<List<WordRange>>() }});
-            Command insertCommand = new Command(insertCommandInfo);
+            Command insertCommand = new Command(insertCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, null);
             commands.Add(insertCommand);
             #endregion
 
@@ -178,7 +180,7 @@ namespace MyMySql
             updateCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["update"],  KeywordRangesThatDontWork = new List<List<WordRange>>()},
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["set"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["where"], KeywordRangesThatDontWork = new List<List<WordRange>>() }});
-            Command updateCommand = new Command(updateCommandInfo);
+            Command updateCommand = new Command(updateCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, null);
             commands.Add(updateCommand);
             #endregion
 
@@ -198,7 +200,7 @@ namespace MyMySql
             List<List<CommandKeywordInfo>> createTableCommandInfo = new List<List<CommandKeywordInfo>>();
             createTableCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["create"],  KeywordRangesThatDontWork = new List<List<WordRange>>()},
                                                                         new CommandKeywordInfo() { CommandKeyword = keywordDictionary["table"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
-            Command createTableCommand = new Command(createTableCommandInfo);
+            Command createTableCommand = new Command(createTableCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, null);
             commands.Add(createTableCommand);
             #endregion
 
@@ -213,7 +215,7 @@ namespace MyMySql
             List<List<WordRange>> onRanges = new List<List<WordRange>>();
             List<List<WordRange>> onLogicRanges = new List<List<WordRange>>();
             onLogicRanges.Add(new List<WordRange>() { new WordRange(2, 3, new ColumnWord("", null, null, ParseCustomSyntax, false)) });
-            onRanges.Add(new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("", null, ParseLogicOpperationSyntax, onLogicRanges))});
+            onRanges.Add(new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("", null, ParseLogicOpperationSyntax, onLogicRanges)) });
             keywordDictionary.Add("on", new Keyword("on", onRanges));
 
             List<List<CommandKeywordInfo>> joinCommandInfo = new List<List<CommandKeywordInfo>>();
@@ -221,11 +223,9 @@ namespace MyMySql
                                                                  new CommandKeywordInfo() {CommandKeyword = keywordDictionary["join"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
                                                                  new CommandKeywordInfo() {CommandKeyword = keywordDictionary["on"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
 
-            joinCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() {CommandKeyword = keywordDictionary["select"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
-                                                                 new CommandKeywordInfo() {CommandKeyword = keywordDictionary["from"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
-                                                                 new CommandKeywordInfo() {CommandKeyword = keywordDictionary["join"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
+            joinCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() {CommandKeyword = keywordDictionary["join"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
                                                                  new CommandKeywordInfo() {CommandKeyword = keywordDictionary["on"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
-            commands.Add(new Command(joinCommandInfo));
+            commands.Add(new Command(joinCommandInfo, new InputInfo() { InputType = typeof(Table), KeywordsNotAllowedAsInput = new List<string>() { "where" } }, typeof(Table)));
             #endregion
 
             #endregion
@@ -324,14 +324,13 @@ namespace MyMySql
                         returnInfo.SyntaxHighlightedInput = commaInfo.SyntaxHighlightedInput;
                         if (returnInfo.Errors.Count == 0)
                         {
-                            CompilerInfo keywordSyntaxInfo = KeywordSyntaxCompiler(commaInfo.Lexemes);
+                            KeywordsInfo keywordSyntaxInfo = KeywordSyntaxCompiler(commaInfo.Lexemes);
                             returnInfo.Errors.AddRange(keywordSyntaxInfo.Errors);
-                            returnInfo.Lexemes = keywordSyntaxInfo.Lexemes;
                             returnInfo.SyntaxHighlightedInput = keywordSyntaxInfo.SyntaxHighlightedInput;
 
                             if (returnInfo.Errors.Count == 0)
                             {
-                                CommandsInfo commandGroupInfo = CommandGroupCompiler(returnInfo.Lexemes);
+                                CommandsInfo commandGroupInfo = CommandGroupCompiler(keywordSyntaxInfo.Keywords);
                                 returnInfo.Errors.AddRange(commandGroupInfo.Errors);
                                 returnInfo.SyntaxHighlightedInput = commandGroupInfo.SyntaxHighlightedInput;
 
@@ -930,7 +929,7 @@ namespace MyMySql
                                 break;
                             }
                         }
-                        
+
                         //Sets the current lexeme to an opperation
                         if (logicOperationDictionary.Keys.Contains(fullOperation))
                         {
@@ -981,42 +980,42 @@ namespace MyMySql
         #endregion
 
         #region KeywordSyntaxStage
-        public CompilerInfo KeywordSyntaxCompiler(List<IWord> lexemes)
+        public KeywordsInfo KeywordSyntaxCompiler(List<IWord> lexemes)
         {
-            CompilerInfo returnInfo = new CompilerInfo() { Lexemes = lexemes, Errors = new List<string>() };
+            KeywordsInfo returnInfo = new KeywordsInfo() { Keywords = new List<Keyword>(), Errors = new List<string>() };
             bool hasFoundAKeyword = false;
-            for (int i = 0; i < returnInfo.Lexemes.Count; i++)
+            for (int i = 0; i < lexemes.Count; i++)
             {
-                if (keywordDictionary.ContainsKey(returnInfo.Lexemes[i].Input.ToLower()))
+                if (keywordDictionary.ContainsKey(lexemes[i].Input.ToLower()))
                 {
-                    Keyword currentKeyword = new Keyword(keywordDictionary[returnInfo.Lexemes[i].Input.ToLower()], new List<IWord>(), null);
-                    for (int j = i + 1; j < returnInfo.Lexemes.Count; j++)
+                    Keyword currentKeyword = new Keyword(keywordDictionary[lexemes[i].Input.ToLower()], new List<IWord>(), null);
+                    for (int j = i + 1; j < lexemes.Count; j++)
                     {
-                        if (keywordDictionary.ContainsKey(returnInfo.Lexemes[j].Input.ToLower()))
+                        if (keywordDictionary.ContainsKey(lexemes[j].Input.ToLower()))
                         {
                             i = j - 1;
                             break;
                         }
-                        else if (functionDictionary.ContainsKey(returnInfo.Lexemes[j].Input.ToLower()))
+                        else if (functionDictionary.ContainsKey(lexemes[j].Input.ToLower()))
                         {
                             FunctionWord currentFunction;
-                            if (j + 1 < returnInfo.Lexemes.Count && returnInfo.Lexemes[j + 1].AllWordType == AllWordTypes.Parentheses)
+                            if (j + 1 < lexemes.Count && lexemes[j + 1].AllWordType == AllWordTypes.Parentheses)
                             {
-                                currentFunction = new FunctionWord(new List<IWord>() { returnInfo.Lexemes[j + 1] }, functionDictionary[returnInfo.Lexemes[j].Input.ToLower()], null);
-                                returnInfo.Lexemes.RemoveAt(j + 1);
+                                currentFunction = new FunctionWord(new List<IWord>() { lexemes[j + 1] }, functionDictionary[lexemes[j].Input.ToLower()], null);
+                                lexemes.RemoveAt(j + 1);
                             }
                             else
                             {
-                                currentFunction = new FunctionWord(new List<IWord>(), functionDictionary[returnInfo.Lexemes[j].Input.ToLower()], null);
+                                currentFunction = new FunctionWord(new List<IWord>(), functionDictionary[lexemes[j].Input.ToLower()], null);
                             }
                             currentKeyword.KeywordParameters.Add(currentFunction);
-                            returnInfo.Lexemes.RemoveAt(j);
+                            lexemes.RemoveAt(j);
                             j = j - 1;
                         }
                         else
                         {
-                            currentKeyword.KeywordParameters.Add(returnInfo.Lexemes[j]);
-                            returnInfo.Lexemes.RemoveAt(j);
+                            currentKeyword.KeywordParameters.Add(lexemes[j]);
+                            lexemes.RemoveAt(j);
                             j = j - 1;
                         }
                     }
@@ -1026,7 +1025,7 @@ namespace MyMySql
                     {
                         currentKeyword.Children = keywordChildrenInfo.Lexemes;
                         currentKeyword.RangesThatWorked = rangesThatWorked;
-                        returnInfo.Lexemes[i] = currentKeyword;
+                        returnInfo.Keywords.Add(currentKeyword);
                     }
                     else
                     {
@@ -1036,7 +1035,7 @@ namespace MyMySql
                 }
                 else if (!hasFoundAKeyword)
                 {
-                    returnInfo.Errors.Add(returnInfo.Lexemes[i].Input + " is not a Keyword");
+                    returnInfo.Errors.Add(lexemes[i].Input + " is not a Keyword");
                     break;
                 }
             }
@@ -1425,18 +1424,18 @@ namespace MyMySql
             ParseSyntaxInfo returnInfo = new ParseSyntaxInfo() { Word = wordToParse, Errors = new List<string>() };
 
             ParseSyntaxInfo childrenInfo = ParseSyntaxWithChildren(wordToParse, wordInstructions);
-            
-            if(childrenInfo.Errors.Count == 0)
+
+            if (childrenInfo.Errors.Count == 0)
             {
                 returnInfo.Word = childrenInfo.Word;
                 Type varType = null;
                 for (int i = 0; i < returnInfo.Word.Children.Count; i++)
                 {
-                    if(i == 0)
+                    if (i == 0)
                     {
                         varType = returnInfo.Word.Children[i].VarType;
                     }
-                    else if(varType != returnInfo.Word.Children[i].VarType)
+                    else if (varType != returnInfo.Word.Children[i].VarType)
                     {
                         returnInfo.Errors.Add(returnInfo.Word.Children[i].Input + " is not a " + returnInfo.Word.Children[i].VarType.Name);
                         break;
@@ -1451,46 +1450,73 @@ namespace MyMySql
         }
         #endregion
 
-        public CommandsInfo CommandGroupCompiler(List<IWord> keywords)
+        public CommandsInfo CommandGroupCompiler(List<Keyword> keywords)
         {
             CommandsInfo returnInfo = new CommandsInfo() { Commands = new List<Command>(), Errors = new List<string>() };
-            List<Keyword> previousKeywords = new List<Keyword>();
-            for (int i = keywords.Count - 1; i >= 0; i--)
+            List<Keyword> currentKeywords = new List<Keyword>(keywords);
+            List<Keyword> nextKeywords = new List<Keyword>();
+            List<Keyword> lastNextKeywords = new List<Keyword>();
+            while (currentKeywords.Count > 0)
             {
-                if (keywords[i].AllWordType == AllWordTypes.Keyword)
+                for (int i = currentKeywords.Count - 1; i >= 0; i--)
                 {
-                    previousKeywords = AddKeywordToBottom((Keyword)keywords[i], previousKeywords);
-                    Command possibleCommand = commandTrie.GetCommand(previousKeywords, commandTrie.BaseNode, 0);
-                    if (possibleCommand != null)
+                    if (currentKeywords[i].AllWordType == AllWordTypes.Keyword)
                     {
-                        possibleCommand.KeywordsInCommand.Reverse();
-                        returnInfo.Commands.Add(possibleCommand);
-                        previousKeywords = new List<Keyword>();
+                        Command possibleCommand = commandTrie.GetCommand(currentKeywords, commandTrie.BaseNode, 0);
+                        if (possibleCommand != null)
+                        {
+                            returnInfo.Commands.Add(possibleCommand);
+                            break;
+                        }
+                        else
+                        {
+                            nextKeywords.Add(currentKeywords[i]);
+                            currentKeywords.RemoveAt(i);
+                        }
                     }
+                    else
+                    {
+                        returnInfo.Errors.Add("Not Given Keywords");
+                    }
+                }
+                if (lastNextKeywords.Count > 0 && EqualLists(nextKeywords,lastNextKeywords))
+                {
+                    returnInfo.Errors.Add("Not a Full Command");
+                    break;
                 }
                 else
                 {
-                    returnInfo.Errors.Add("Not Given Keywords");
+                    currentKeywords = nextKeywords;
+                    lastNextKeywords = new List<Keyword>(nextKeywords);
+                    currentKeywords.Reverse();
+                    nextKeywords = new List<Keyword>();
                 }
             }
-            returnInfo.Commands.Reverse();
-            if (returnInfo.Commands.Count == 0)
+            if (returnInfo.Commands.Count == 0 && returnInfo.Errors.Count == 0)
             {
-                returnInfo.Errors.Add("No Full Command");
+                returnInfo.Errors.Add("Not a Full Command");
             }
             return returnInfo;
         }
-        public List<Keyword> AddKeywordToBottom(Keyword keyword, List<Keyword> list)
+
+        public bool EqualLists(List<Keyword> list1, List<Keyword> list2)
         {
-            Keyword previousValue = keyword;
-            for (int i = 0; i < list.Count; i++)
+            bool returnBool = true;
+            if(list1.Count == list2.Count)
             {
-                Keyword temp = list[i];
-                list[i] = previousValue;
-                previousValue = temp;
+                for(int i = 0; i < list1.Count; i++)
+                {
+                    if(list1[i] != list2[i])
+                    {
+                        return false;
+                    }
+                }
             }
-            list.Add(previousValue);
-            return list;
+            else
+            {
+                returnBool = false;
+            }
+            return returnBool;
         }
 
         public CommandsInfo CommandKeywordCompiler(List<Command> commands)
@@ -1630,25 +1656,25 @@ namespace MyMySql
                             customCustomWordSets.Add(new List<CustomCustomWord>());
                         }
                         customCustomWordSets.Last().Add(command.CustomCustomsInCommand[i]);
-                        if(i + 1 >= command.CustomCustomsInCommand.Count)
+                        if (i + 1 >= command.CustomCustomsInCommand.Count)
                         {
-                            if(customCustomWordSets.Last().Count != table.TableDirectory.SqlColumns.Count)
+                            if (customCustomWordSets.Last().Count != table.TableDirectory.SqlColumns.Count)
                             {
                                 returnInfo.Errors.Add(table.Input + " Expects " + table.TableDirectory.SqlColumns.Count + " Inputs");
                                 break;
                             }
                         }
                     }
-                    if(returnInfo.Errors.Count > 0)
+                    if (returnInfo.Errors.Count > 0)
                     {
                         break;
                     }
-                    foreach(List<CustomCustomWord> customCustomWordSet in customCustomWordSets)
+                    foreach (List<CustomCustomWord> customCustomWordSet in customCustomWordSets)
                     {
                         bool followsSet = true;
-                        for(int i = 0; i < customCustomWordSet.Count; i++)
+                        for (int i = 0; i < customCustomWordSet.Count; i++)
                         {
-                            if(customCustomWordSet[i].VarType != table.TableDirectory.SqlColumns[i].VarType)
+                            if (customCustomWordSet[i].VarType != table.TableDirectory.SqlColumns[i].VarType)
                             {
                                 followsSet = false;
                                 break;
@@ -1665,7 +1691,7 @@ namespace MyMySql
                         break;
                     }
                 }
-                else if(command.CustomCustomsInCommand.Count > 0)
+                else if (command.CustomCustomsInCommand.Count > 0)
                 {
                     returnInfo.Errors.Add("Command Expects one Table");
                     break;

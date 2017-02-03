@@ -15,17 +15,37 @@ namespace MyMySql.IWords
         public List<TableWord> TablesInCommand { get; set; }
         public List<ColumnWord> ColumnsInCommand { get; set; }
         public List<CustomCustomWord> CustomCustomsInCommand { get; set; }
-        public Command(List<List<CommandKeywordInfo>> keywordsInCommand)
+        
+        public InputInfo Input { get; set; }
+        public Type Output { get; set; }
+        public Command ChildCommand { get; set; }
+        
+        public Command(List<List<CommandKeywordInfo>> keywordsInCommand, InputInfo input, Type output)
         {
             KeywordsInCommand = keywordsInCommand;
             TablesInCommand = new List<TableWord>();
             ColumnsInCommand = new List<ColumnWord>();
+            Input = input;
+            Output = output;
+            ChildCommand = null;
         }
         public Command(List<List<CommandKeywordInfo>> keywordsInCommand, Command dictionaryCommand)
         {
             KeywordsInCommand = keywordsInCommand;
             TablesInCommand = new List<TableWord>();
             ColumnsInCommand = new List<ColumnWord>();
+            Input = dictionaryCommand.Input;
+            Output = dictionaryCommand.Output;
+            ChildCommand = null;
+        }
+        public Command(List<List<CommandKeywordInfo>> keywordsInCommand, Command childCommand, Command dictionaryCommand)
+        {
+            KeywordsInCommand = keywordsInCommand;
+            TablesInCommand = new List<TableWord>();
+            ColumnsInCommand = new List<ColumnWord>();
+            Input = dictionaryCommand.Input;
+            Output = dictionaryCommand.Output;
+            ChildCommand = childCommand;
         }
         public void GetCustomWordsInCommand(IWord currentWord, bool parentIsLogicOpperation)
         {
@@ -52,5 +72,10 @@ namespace MyMySql.IWords
     {
         public Keyword CommandKeyword;
         public List<List<WordRange>> KeywordRangesThatDontWork;
+    }
+    public struct InputInfo
+    {
+        public Type InputType;
+        public List<string> KeywordsNotAllowedAsInput;
     }
 }
