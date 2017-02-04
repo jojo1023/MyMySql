@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MyMySql.TableStuff;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace MyMySql
     public class SqlRow : IComparable
     {
         public Table OwningTable { get; }
-        public List<SqlCell> Cells { get; }
+        public List<SqlCell> Cells { get; set; }
         public int ID { get; private set; }
 
         /// <summary>
@@ -31,8 +32,15 @@ namespace MyMySql
                 for (int i = 0; i < values.Length; i++)
                 {
                     SqlColumn currentCollumn = OwningTable.SqlColumns[i];
-                    object compareValue = ((IConvertible)values[i]).ToType(currentCollumn.VarType, System.Globalization.CultureInfo.InvariantCulture);
-
+                    object compareValue;
+                    if (values[i].GetType() != typeof(EmptyICompareable))
+                    {
+                        compareValue = ((IConvertible)values[i]).ToType(currentCollumn.VarType, System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    else
+                    {
+                        compareValue = values[i];
+                    }
                     if (compareValue is IComparable)
                     {
                         Cells.Add(new SqlCell((IComparable)compareValue, OwningTable.SqlColumns[i], this));
@@ -48,38 +56,60 @@ namespace MyMySql
                 throw new IndexOutOfRangeException();
             }
         }
-        
-        /// <summary>
-        /// Gets a cell from the name of the column its in
-        /// </summary>
-        /// <param name="colName">the name of the column that the cell is in</param>
-        /// <returns>The cell that is in the column</returns>
-        public SqlCell this[string colName]
+        public SqlRow(int id, Table table, List<SqlCell> cells)
         {
-            get
+            ID = id;
+            OwningTable = table;
+            if(cells.Count == OwningTable.SqlColumns.Count)
             {
-                //if the owning table has the column then get the index and return the cell in that index
-                int colInd;
-                if (!OwningTable.SqlColumnIndicesByName.TryGetValue(colName, out colInd))
-                {
-                    return null;
-                }
-
-                return Cells[colInd];
+                Cells = cells;
             }
-            set
+            else
             {
-                //if the owning table has the column then get the index and set the cell in that index
-                int colInd;
-                if (!OwningTable.SqlColumnIndicesByName.TryGetValue(colName, out colInd))
-                {
-                    throw new IndexOutOfRangeException();
-                }
-
-                Cells[colInd] = value;
+                throw new IndexOutOfRangeException();
             }
         }
 
+
+        ///// <summary>
+        ///// Gets a cell from the name of the column its in
+        ///// </summary>
+        ///// <param name="colName">the name of the column that the cell is in</param>
+        ///// <returns>The cell that is in the column</returns>
+        //public SqlCell this[string colName]
+        //{
+        //    get
+        //    {
+        //        //if the owning table has the column then get the index and return the cell in that index
+        //        int colInd;
+        //        if (!OwningTable.SqlColumnIndicesByName.TryGetValue(colName, out colInd))
+        //        {
+        //            return null;
+        //        }
+
+        //        return Cells[colInd];
+        //    }
+        //    set
+        //    {
+        //        //if the owning table has the column then get the index and set the cell in that index
+        //        int colInd;
+        //        if (!OwningTable.SqlColumnIndicesByName.TryGetValue(colName, out colInd))
+        //        {
+        //            throw new IndexOutOfRangeException();
+        //        }
+
+        //        Cells[colInd] = value;
+        //    }
+        //}
+        public int GetColumnIndex(SqlColumn column)
+        {
+            if (!OwningTable.SqlColumns.Contains(column))
+            {
+                return -1;
+            }
+
+            return OwningTable.SqlColumns.IndexOf(column);
+        }
         /// <summary>
         /// Compares an object with ID
         /// </summary>

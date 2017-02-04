@@ -46,13 +46,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IWords\Columnword.cs" />
+    <Compile Include="ICommandReturn.cs" />
     <Compile Include="IWords\Command.cs" />
     <Compile Include="IWords\ILanguageWords\FunctionWord.cs" />
     <Compile Include="IWords\WordRange.cs" />
     <Compile Include="RenderCharacter.cs" />
     <Compile Include="RenderString.cs" />
     <Compile Include="TableStuff\ColumnValuePair.cs" />
+    <Compile Include="TableStuff\EmptyICompareable.cs" />
     <Compile Include="TreeStuff\BinaryTree.cs" />
     <Compile Include="IWords\ICustomWords\ColumnWord.cs" />
     <Compile Include="IWords\CustomCustomWord.cs" />

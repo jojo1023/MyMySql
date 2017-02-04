@@ -8,9 +8,25 @@ using System.Threading.Tasks;
 
 namespace MyMySql
 {
-    public class RenderString : IComparable<RenderString>, IEnumerable<RenderCharacter>, IEnumerable, IEquatable<RenderString>
+    public class RenderString : IComparable<RenderString>, IEnumerable<RenderCharacter>, IEnumerable, IEquatable<RenderString>, ICommandReturn
     {
         public List<RenderCharacter> Characters { get; set; }
+
+        public Table ReturnTable { get; set; }
+
+        public RenderString ReturnString
+        {
+            get
+            {
+                return this;
+            }
+
+            set
+            {
+                Characters = value.Characters;
+                ReturnTable = value.ReturnTable;
+            }
+        }
 
         public int CompareTo(RenderString other)
         {
@@ -35,6 +51,7 @@ namespace MyMySql
         public RenderString(List<RenderCharacter> characters)
         {
             Characters = characters;
+            ReturnTable = null;
         }
         public RenderString(string renderString, Color stringColor)
         {
@@ -43,6 +60,7 @@ namespace MyMySql
             {
                 Characters.Add(new RenderCharacter(renderString[i], stringColor, null));
             }
+            ReturnTable = new Table("");
         }
         public RenderString(string renderString, Color stringColor, Color SquigglyLineColor)
         {
@@ -51,6 +69,7 @@ namespace MyMySql
             {
                 Characters.Add(new RenderCharacter(renderString[i], stringColor, SquigglyLineColor));
             }
+            ReturnTable = new Table("");
         }
 
         public override string ToString()

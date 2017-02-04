@@ -10,16 +10,17 @@ namespace MyMySql
     {
         public Type VarType { get; set; }
         public string Name { get; set; }
-
+        public Table OwningTable { get; set; }
         /// <summary>
         /// Constructor creates a SqlColumn with a name and a type
         /// </summary>
         /// <param name="name">The name of the column</param>
         /// <param name="type">The type of objects in the column</param>
-        public SqlColumn(string name, Type type)
+        public SqlColumn(string name, Type type, Table owningTable)
         {
             Name = name;
             VarType = type;
+            OwningTable = owningTable;
         }
     }
 }
