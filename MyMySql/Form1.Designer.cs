@@ -56,7 +56,7 @@
             this.errorTextBox.Location = new System.Drawing.Point(6, 6);
             this.errorTextBox.Multiline = true;
             this.errorTextBox.Name = "errorTextBox";
-            this.errorTextBox.Size = new System.Drawing.Size(797, 107);
+            this.errorTextBox.Size = new System.Drawing.Size(797, 247);
             this.errorTextBox.TabIndex = 2;
             // 
             // tabControl1
@@ -66,7 +66,7 @@
             this.tabControl1.Location = new System.Drawing.Point(13, 196);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(817, 145);
+            this.tabControl1.Size = new System.Drawing.Size(817, 285);
             this.tabControl1.TabIndex = 4;
             // 
             // tabPage1
@@ -75,7 +75,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 22);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(809, 119);
+            this.tabPage1.Size = new System.Drawing.Size(809, 259);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Errors";
             this.tabPage1.UseVisualStyleBackColor = true;
@@ -86,17 +86,18 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(809, 119);
+            this.tabPage2.Size = new System.Drawing.Size(809, 259);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Output";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
             // outputTextBox
             // 
+            this.outputTextBox.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.outputTextBox.Location = new System.Drawing.Point(6, 6);
             this.outputTextBox.Multiline = true;
             this.outputTextBox.Name = "outputTextBox";
-            this.outputTextBox.Size = new System.Drawing.Size(797, 107);
+            this.outputTextBox.Size = new System.Drawing.Size(797, 247);
             this.outputTextBox.TabIndex = 2;
             // 
             // inputTextBox
@@ -112,7 +113,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(842, 353);
+            this.ClientSize = new System.Drawing.Size(842, 493);
             this.Controls.Add(this.inputTextBox);
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.executeButton);

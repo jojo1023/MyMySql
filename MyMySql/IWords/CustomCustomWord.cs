@@ -31,6 +31,7 @@ namespace MyMySql.IWords.ICustomWords
         public List<IWord> WordsThisCouldBe { get; set; }
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
+        public bool UserInfo { get; set; }
         public CustomCustomWord(string input, Type varType, IComparable data, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax)
         {
             Input = input;
@@ -45,6 +46,7 @@ namespace MyMySql.IWords.ICustomWords
             WordsThisCouldBe = new List<IWord>();
             Initializing = false;
             RangesThatWorked = null;
+            UserInfo = true;
         }
         
     }

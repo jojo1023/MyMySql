@@ -34,6 +34,7 @@ namespace MyMySql.IWords.ICustomWords
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
         public Type VarType { get; set; }
+        public bool UserInfo { get; set; }
         public ColumnWord(string input, SqlColumn columnDirectory, Table owningTasble, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, bool initializing)
         {
             Alias = input;
@@ -57,6 +58,7 @@ namespace MyMySql.IWords.ICustomWords
             {
                 VarType = ColumnDirectory.VarType;
             }
+            UserInfo = true;
         }
         public ColumnWord(ColumnWord other)
         {
@@ -73,6 +75,7 @@ namespace MyMySql.IWords.ICustomWords
             WordsThisCouldBe = other.WordsThisCouldBe;
             Initializing = other.Initializing;
             RangesThatWorked = null;
+            UserInfo = true;
             if (ColumnDirectory == null)
             {
                 VarType = null;

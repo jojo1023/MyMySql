@@ -42,7 +42,7 @@ namespace MyMySql
         }
 
         public RenderString ReturnString { get; set; }
-        
+
 
         /// <summary>
         /// Constructor that intitializes the table
@@ -128,87 +128,10 @@ namespace MyMySql
         /// <returns>A sorted list of the rows selected</returns>
         public List<SqlRow> Select()
         {
-            List<SqlRow> sortedRows = Tree.GetNodesInOrder();
-            //if hasWhereClause check each row else return every row
-            //if (hasWhereClause)
-            //{
-            //    List<SqlRow> returnRows = new List<SqlRow>();
-            //    //if value is the same type as the values in the column
-            //    if (column.VarType == value.GetType())
-            //    {
-            //        //for every row in the table see if they pass the whereClause and if they do add them to return list
-            //        foreach (SqlRow row in sortedRows)
-            //        {
-            //            IComparable currentCellValue = row[column.Name].Value;
-            //            //see if the current row passes the where clause by checking if the currentCellValue opperation value retruns true
-            //            switch (opperation)
-            //            {
-            //                case (Opperations.Equal):
-            //                    if (currentCellValue.Equals(value))
-            //                    {
-            //                        returnRows.Add(row);
-            //                    }
-            //                    break;
-            //                case (Opperations.GreaterThan):
-            //                    if (currentCellValue.CompareTo(value) > 0)
-            //                    {
-            //                        returnRows.Add(row);
-            //                    }
-            //                    break;
-            //                case (Opperations.LessThan):
-            //                    if (currentCellValue.CompareTo(value) < 0)
-            //                    {
-            //                        returnRows.Add(row);
-            //                    }
-            //                    break;
-            //                case (Opperations.GreaterThanOrEqual):
-            //                    if (currentCellValue.CompareTo(value) >= 0)
-            //                    {
-            //                        returnRows.Add(row);
-            //                    }
-            //                    break;
-            //                case (Opperations.LessThanOrEqual):
-            //                    if (currentCellValue.CompareTo(value) <= 0)
-            //                    {
-            //                        returnRows.Add(row);
-            //                    }
-            //                    break;
-            //                case (Opperations.NotEqual):
-            //                    if (!currentCellValue.Equals(value))
-            //                    {
-            //                        returnRows.Add(row);
-            //                    }
-            //                    break;
-            //            }
-
-            //        }
-            //    }
-
-            //    return returnRows;
-            //}
-            return sortedRows;
+            return Tree.GetNodesInOrder();
         }
 
-        ///// <summary>
-        ///// Gets a column from its name
-        ///// </summary>
-        ///// <param name="colName">The name of the column to be found</param>
-        ///// <returns>Returns a column</returns>
-        //public SqlColumn this[string colName]
-        //{
-        //    get
-        //    {
-        //        //If SqlColumnIndicesByName has the name colName then return the index of that column
-        //        int colIndex;
-        //        if (!SqlColumnIndicesByName.TryGetValue(colName, out colIndex))
-        //        {
-        //            return null;
-        //        }
 
-        //        return SqlColumns[colIndex];
-        //    }
-        //}
-        
         /// <summary>
         /// Sorts the tree into a more balanced orientation
         /// </summary>
@@ -217,26 +140,14 @@ namespace MyMySql
             Tree.Sort();
         }
 
-        ///// <summary>
-        ///// Deletes all the rows in the tree where they pass the where clause
-        ///// </summary>
-        ///// <param name="hasWhereClause">If the delete command included a where clause or if it schould delete all the rows</param>
-        ///// <param name="column">The column in the where clause</param>
-        ///// <param name="opperation">The logical opperation in the where clause</param>
-        ///// <param name="value">The value in the where clause</param>
-        ///// <returns>The amount of rows that where deleted</returns>
-        //public int Delete(bool hasWhereClause, SqlColumn column, Opperations opperation, IComparable value)
-        //{
-        //    //Selects all the items to be deleted and deletes them from the tree
-        //    int returnInt = 0;
-        //    List<SqlRow> itemsToDelete = Select(hasWhereClause, column, opperation, value);
-        //    foreach (SqlRow row in itemsToDelete)
-        //    {
-        //        Tree.DeleteNode(row);
-        //        returnInt++;
-        //    }
-        //    return returnInt;
-        //}
+        /// <summary>
+        /// Deletes a row
+        /// </summary>
+        /// <param name="rowToDelete">Row to delete</param>
+        public void Delete(SqlRow rowToDelete)
+        {
+            Tree.DeleteNode(rowToDelete);
+        }
 
         ///// <summary>
         ///// Updates all the rows inthe table where they pass the where clause
@@ -304,6 +215,160 @@ namespace MyMySql
             }
 
             return currentNode;
+        }
+
+        public override string ToString()
+        {
+            return DisplayTable(this, Select(), SqlColumns);
+        }
+        /// <summary>
+        /// Displays a table and its data
+        /// </summary>
+        /// <param name="table">The table to diplay</param>
+        /// <param name="rows">The rows to display</param>
+        /// <param name="columns">The collumns to display</param>
+        /// <returns>Returns a string that represents the table with ASCII</returns>
+        string DisplayTable(Table table, List<SqlRow> rows, List<SqlColumn> columns)
+        {
+            string returnString = "";
+            List<int> columnWidths = new List<int>(); //How wide a column each needs to be in characters to fit all the data in it
+            int paddingSize = 1;
+            int headerLevel = 0;//The current level of the header being displayed 0 = bottom of Table, 1 = bottom of Header, 2 = header, 3 = top of Header 
+
+            //Characters for the sides and corners of the table
+            char cornerChar = '+';
+            char verticalChar = '|';
+            char horizontalChar = '-';
+
+            for (int i = 0; i < table.SqlColumns.Count; i++)
+            {
+                columnWidths.Add(table.SqlColumns[i].Name.Length);
+            }
+            //displays table without header
+            if (rows.Count > 0)
+            {
+                returnString += DisplayColumns(table, rows, columns, 0, 0, paddingSize, verticalChar, columnWidths, out columnWidths);
+                returnString += Environment.NewLine;
+            }
+            //loops through collumns to add header
+            for (int x = columns.Count - 1; x >= 0; x--)
+            {
+                //if header level is not the bottom of the table
+                if (headerLevel != 0)
+                {
+                    //if on last collumn new Line
+                    if (x + 1 >= columns.Count)
+                    {
+                        returnString = Environment.NewLine + returnString;
+                    }
+                    //if header level is not header display a solid line
+                    if (headerLevel != 2)
+                    {
+                        returnString = RepeatChar(horizontalChar, columnWidths[x] + (paddingSize * 2)) + cornerChar + returnString;
+                    }
+                    else
+                    {
+                        returnString = RepeatChar(' ', paddingSize) + columns[x].Name + RepeatChar(' ', columnWidths[x] + paddingSize - columns[x].Name.Length) + verticalChar + returnString;
+                    }
+                    //if on first collumn display cornerChar
+                    if (x == 0)
+                    {
+                        //if header level is the header display verticalChar else display cornerChar
+                        if (headerLevel == 2)
+                        {
+                            returnString = verticalChar + returnString;
+                        }
+                        else
+                        {
+                            returnString = cornerChar + returnString;
+                        }
+
+                    }
+                }
+                else
+                {
+                    int oppositeX = columns.Count - 1 - x;
+
+                    //if on first collumn display cornerChar
+                    if (oppositeX == 0)
+                    {
+                        returnString += cornerChar;
+                    }
+                    returnString += RepeatChar(horizontalChar, columnWidths[oppositeX] + (paddingSize * 2)) + cornerChar;
+                    //if on last collumn new Line
+                    if (oppositeX + 1 >= columns.Count)
+                    {
+                        returnString += Environment.NewLine;
+                    }
+                }
+                //if first collumn and current header level is not the top display the next header level
+                if (x == 0 && headerLevel < 3)
+                {
+                    headerLevel++;
+                    x = columns.Count;
+                }
+
+            }
+
+            return returnString;
+        }
+
+        //Displays the value for each column
+        string DisplayColumns(Table table, List<SqlRow> rows, List<SqlColumn> columns, int rowIndex, int columnIndex, int paddingSize, char verticalChar, List<int> currentColumnWidths, out List<int> columnWidths)
+        {
+            string returnString = "";
+            int amountOfExtraPaddingForRow;
+            columnWidths = currentColumnWidths;
+            string nextCollumn = "";
+            string nextRow = "";
+            //if on first collumn display wall
+            if (columnIndex == 0)
+            {
+                returnString += verticalChar;
+            }
+
+            //if this rows data is longer than the collumn width set the collumn width to the length of this rows data
+            if (columnWidths[columnIndex] < rows[rowIndex].Cells[columnIndex].Value.ToString().Length)
+            {
+                columnWidths[columnIndex] = rows[rowIndex].Cells[columnIndex].Value.ToString().Length;
+            }
+
+            returnString += RepeatChar(' ', paddingSize) + rows[rowIndex].Cells[columnIndex].Value.ToString();//Dislays current row and collumn value
+
+            //if not on last collumn get next collumn
+            if (columnIndex + 1 < columns.Count)
+            {
+                nextCollumn = DisplayColumns(table, rows, columns, rowIndex, columnIndex + 1, paddingSize, verticalChar, columnWidths, out columnWidths);
+            }
+            //if not on last row get next row
+            else if (rowIndex + 1 < rows.Count)
+            {
+                nextRow = DisplayColumns(table, rows, columns, rowIndex + 1, 0, paddingSize, verticalChar, columnWidths, out columnWidths);
+            }
+            //add padding for collumn
+            amountOfExtraPaddingForRow = columnWidths[columnIndex] - rows[rowIndex].Cells[columnIndex].Value.ToString().Length;
+            returnString += RepeatChar(' ', paddingSize + amountOfExtraPaddingForRow) + verticalChar;
+            //display next collumn and row
+            returnString += nextCollumn;
+            //if there is a next row new line and display it
+            if (nextRow != "")
+            {
+                returnString += Environment.NewLine + nextRow;
+            }
+
+
+            return returnString;
+        }
+
+        //Returns a string of a character repeated for a certain amount of time
+        string RepeatChar(char letter, int amountOfTimes)
+        {
+            string returnString = "";
+            for (int i = 0; i < amountOfTimes; i++)
+            {
+                returnString += letter;
+            }
+            return returnString;
         }
     }
 

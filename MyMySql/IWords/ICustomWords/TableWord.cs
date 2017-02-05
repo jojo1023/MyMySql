@@ -32,6 +32,7 @@ namespace MyMySql.ICustomWords
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
         public Type VarType { get; set; }
+        public bool UserInfo { get; set; }
         public TableWord(string input, string alias, Table tableDirectory, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, bool initializing)
         {
             Input = input;
@@ -47,6 +48,7 @@ namespace MyMySql.ICustomWords
             Initializing = initializing;
             RangesThatWorked = null;
             VarType = null;
+            UserInfo = true;
         }
 
     }

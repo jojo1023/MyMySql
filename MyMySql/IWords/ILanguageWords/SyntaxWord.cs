@@ -60,6 +60,7 @@ namespace MyMySql.IWords.ILanguageWords
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
         public Type VarType { get; set; }
+        public bool UserInfo { get; set; }
         public SyntaxWord(char startingSyntax, List<char> closeingSyntaxList, bool endLineIsCloseingSyntax, Func<string, CompilerInfo> fillWordsInsideSyntax, AllWordTypes allWordType, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, List<List<WordRange>> childrenRanges)
         {
             Input = startingSyntax.ToString();
@@ -76,6 +77,7 @@ namespace MyMySql.IWords.ILanguageWords
             Initializing = false;
             RangesThatWorked = null;
             VarType = null;
+            UserInfo = false;
         }
 
         public SyntaxWord(string inputInsideSyntax, SyntaxWord dictionarySyntax, List<WordRange> rangesThatWorked)
@@ -95,6 +97,7 @@ namespace MyMySql.IWords.ILanguageWords
             Initializing = false;
             RangesThatWorked = rangesThatWorked;
             VarType = null;
+            UserInfo = false;
         }
 
         public CompilerInfo FindWordsInsideSyntax()

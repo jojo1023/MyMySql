@@ -56,6 +56,7 @@ namespace MyMySql.IWords.ILanguageWords
             }
         }
         public Type VarType { get; set; }
+        public bool UserInfo { get; set; }
         public LogicOperationWord(string input, Func<IComparable, IComparable, bool> logicFunction, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, List<List<WordRange>> childrenRanges)
         {
             Input = input;
@@ -70,6 +71,7 @@ namespace MyMySql.IWords.ILanguageWords
             Initializing = false;
             RangesThatWorked = null;
             VarType = null;
+            UserInfo = false;
         }
         public LogicOperationWord(IWord wordToLeft, IWord wordToRight, List<WordRange> rangesThatWorked, LogicOperationWord other)
         {

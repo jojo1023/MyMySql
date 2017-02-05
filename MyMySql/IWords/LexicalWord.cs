@@ -27,6 +27,7 @@ namespace MyMySql.IWords
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
         public Type VarType { get; set; }
+        public bool UserInfo { get; set; }
         public LexicalWord (string input)
         {
             Input = input;
@@ -40,6 +41,7 @@ namespace MyMySql.IWords
             Initializing = false;
             RangesThatWorked = null;
             VarType = null;
+            UserInfo = false;
         }
     }
 }

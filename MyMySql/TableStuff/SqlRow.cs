@@ -1,4 +1,5 @@
-﻿using MyMySql.TableStuff;
+﻿
+using MyMySql.TableStuff;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -33,17 +34,19 @@ namespace MyMySql
                 {
                     SqlColumn currentCollumn = OwningTable.SqlColumns[i];
                     object compareValue;
-                    if (values[i].GetType() != typeof(EmptyICompareable))
+                    bool isNull = false;
+                    if (values[i].GetType() != typeof( NullICompareable))
                     {
                         compareValue = ((IConvertible)values[i]).ToType(currentCollumn.VarType, System.Globalization.CultureInfo.InvariantCulture);
                     }
                     else
                     {
                         compareValue = values[i];
+                        isNull = true;
                     }
                     if (compareValue is IComparable)
                     {
-                        Cells.Add(new SqlCell((IComparable)compareValue, OwningTable.SqlColumns[i], this));
+                        Cells.Add(new SqlCell((IComparable)compareValue, OwningTable.SqlColumns[i], this, isNull));
                     }
                     else
                     {

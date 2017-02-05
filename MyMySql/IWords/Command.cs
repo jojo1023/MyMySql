@@ -19,8 +19,9 @@ namespace MyMySql.IWords
         public InputInfo Input { get; set; }
         public Type Output { get; set; }
         public Command ChildCommand { get; set; }
-        public Func<ICommandReturn, List<IWord>, Command, ICommandReturn> CommandFucntion { get; set; }
-        public Command(List<List<CommandKeywordInfo>> keywordsInCommand, InputInfo input, Type output, Func<ICommandReturn, List<IWord>, Command, ICommandReturn> commandFucntion)
+        public Func<ICommandReturn, List<IWord>, Command, ICommandReturn> BeforeChildCommandFunction { get; set; }
+        public Func<ICommandReturn, Command, ICommandReturn> AfterChildCommandFunction { get; set; }
+        public Command(List<List<CommandKeywordInfo>> keywordsInCommand, InputInfo input, Type output, Func<ICommandReturn, List<IWord>, Command, ICommandReturn> beforeChildCommandFucntion, Func<ICommandReturn, Command, ICommandReturn> afterChildCommandFunction)
         {
             KeywordsInCommand = keywordsInCommand;
             TablesInCommand = new List<TableWord>();
@@ -28,7 +29,8 @@ namespace MyMySql.IWords
             Input = input;
             Output = output;
             ChildCommand = null;
-            CommandFucntion = commandFucntion;
+            BeforeChildCommandFunction = beforeChildCommandFucntion;
+            AfterChildCommandFunction = afterChildCommandFunction;
         }
         public Command(List<List<CommandKeywordInfo>> keywordsInCommand, Command dictionaryCommand)
         {
@@ -38,7 +40,8 @@ namespace MyMySql.IWords
             Input = dictionaryCommand.Input;
             Output = dictionaryCommand.Output;
             ChildCommand = null;
-            CommandFucntion = dictionaryCommand.CommandFucntion;
+            BeforeChildCommandFunction = dictionaryCommand.BeforeChildCommandFunction;
+            AfterChildCommandFunction = dictionaryCommand.AfterChildCommandFunction;
         }
         public Command(List<List<CommandKeywordInfo>> keywordsInCommand, Command childCommand, Command dictionaryCommand)
         {
@@ -48,7 +51,8 @@ namespace MyMySql.IWords
             Input = dictionaryCommand.Input;
             Output = dictionaryCommand.Output;
             ChildCommand = childCommand;
-            CommandFucntion = dictionaryCommand.CommandFucntion;
+            BeforeChildCommandFunction = dictionaryCommand.BeforeChildCommandFunction;
+            AfterChildCommandFunction = dictionaryCommand.AfterChildCommandFunction;
         }
         public void GetCustomWordsInCommand()
         {
@@ -93,6 +97,80 @@ namespace MyMySql.IWords
             {
                 GetCustomWordsInCommandRecursive(child, currentWord.AllWordType == AllWordTypes.LogicOperation);
             }
+        }
+        public ICommandReturn RunCommand(ICommandReturn parentCommandReturn)
+        {
+            List<FunctionWord> functions = new List<FunctionWord>();
+            List<IWord> userInfo = new List<IWord>();
+            ICommandReturn commandReturn = null;
+            foreach (List<CommandKeywordInfo> keyword in KeywordsInCommand)
+            {
+                if (keyword.Count > 0)
+                {
+                    userInfo.AddRange(GetAllUserInfo(keyword[0].CommandKeyword));
+                }
+            }
+            for (int i = 0; i < userInfo.Count; i++)
+            {
+                if (userInfo[i].AllWordType == AllWordTypes.Function)
+                {
+                    FunctionWord currentFunction = (FunctionWord)userInfo[i];
+                    functions.Add(currentFunction);
+                    List<IWord> functionReplacement = currentFunction.BeforeCommandFunction.Invoke(currentFunction, TablesInCommand);
+                    userInfo.RemoveAt(i);
+                    userInfo = AddRangetAtIndex(userInfo, functionReplacement, i);
+                    i = i + functionReplacement.Count;
+                }
+            }
+            commandReturn = BeforeChildCommandFunction.Invoke(parentCommandReturn, userInfo, this);
+            if (ChildCommand != null)
+            {
+                commandReturn = ChildCommand.RunCommand(commandReturn);
+            }
+            commandReturn = AfterChildCommandFunction.Invoke(commandReturn, this);
+            foreach (FunctionWord function in functions)
+            {
+                commandReturn = function.AfterCommandFunction.Invoke(function, commandReturn);
+            }
+            return commandReturn;
+        }
+        List<IWord> GetAllUserInfo(IWord currentWord)
+        {
+            List<IWord> returnList = new List<IWord>();
+            if (currentWord.UserInfo)
+            {
+                returnList.Add(currentWord);
+            }
+            else
+            {
+                foreach (IWord child in currentWord.Children)
+                {
+                    returnList.AddRange(GetAllUserInfo(child));
+                }
+            }
+            return returnList;
+        }
+        List<IWord> AddRangetAtIndex(List<IWord> list, List<IWord> words, int index)
+        {
+            List<IWord> returnList = new List<IWord>();
+            bool addedWords = false;
+            for (int i = 0; i < list.Count + words.Count; i++)
+            {
+                if (i >= index && i < index + words.Count)
+                {
+                    returnList.Add(words[i - index]);
+                    addedWords = true;
+                }
+                else if (addedWords)
+                {
+                    returnList.Add(list[i - words.Count]);
+                }
+                else
+                {
+                    returnList.Add(list[i]);
+                }
+            }
+            return returnList;
         }
     }
     public struct CommandKeywordInfo

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MyMySql.ICustomWords;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,7 +27,10 @@ namespace MyMySql.IWords.ILanguageWords
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
         public Type VarType { get; set; }
-        public FunctionWord(string input, List<List<WordRange>> childrenRanges, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax)
+        public Func<FunctionWord, List<TableWord>,List<IWord>> BeforeCommandFunction { get; set; }
+        public Func<FunctionWord, ICommandReturn, ICommandReturn> AfterCommandFunction { get; set; }
+        public bool UserInfo { get; set; }
+        public FunctionWord(string input, List<List<WordRange>> childrenRanges, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, Func<FunctionWord, List<TableWord>, List<IWord>> beforeCommandFunction, Func<FunctionWord, ICommandReturn, ICommandReturn> afterCommandFunction)
         {
             Input = input;
             ChildrenRanges = childrenRanges;
@@ -39,6 +43,9 @@ namespace MyMySql.IWords.ILanguageWords
             Initializing = false;
             RangesThatWorked = null;
             VarType = null;
+            BeforeCommandFunction = beforeCommandFunction;
+            AfterCommandFunction = afterCommandFunction;
+            UserInfo = true;
         }
 
         public FunctionWord(List<IWord> children, FunctionWord dictionaryFunctionWord, List<WordRange> rangesThatWorked)
@@ -54,6 +61,9 @@ namespace MyMySql.IWords.ILanguageWords
             Initializing = false;
             RangesThatWorked = rangesThatWorked;
             VarType = null;
+            BeforeCommandFunction = dictionaryFunctionWord.BeforeCommandFunction;
+            AfterCommandFunction = dictionaryFunctionWord.AfterCommandFunction;
+            UserInfo = true;
         }
     }
 }

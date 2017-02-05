@@ -28,6 +28,7 @@ namespace MyMySql.IWords.ILanguageWords
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
         public Type VarType { get; set; }
+        public bool UserInfo { get; set; }
         public MathOperationWord(string input, Func<IComparable, IComparable, IComparable> mathFunction, Func<IWord,  IWord, ParseSyntaxInfo> parseSyntax)
         {
             Input = input;
@@ -42,6 +43,7 @@ namespace MyMySql.IWords.ILanguageWords
             Initializing = false;
             RangesThatWorked = null;
             VarType = null;
+            UserInfo = false;
         }
     }
 }

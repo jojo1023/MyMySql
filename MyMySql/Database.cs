@@ -2,7 +2,6 @@
 using MyMySql.IWords;
 using MyMySql.IWords.ICustomWords;
 using MyMySql.IWords.ILanguageWords;
-using MyMySql.TableStuff;
 using MyMySql.TrieStuff;
 using System;
 using System.Collections;
@@ -12,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using MyMySql.TableStuff;
 
 namespace MyMySql
 {
@@ -109,7 +109,7 @@ namespace MyMySql
             selectComma.ChildrenRanges.Add(new List<WordRange>() { new WordRange(1, 2, new ColumnWord("", null, null, ParseCustomSyntax, false)) });
             selectParamaters.Add(new List<WordRange>() { new WordRange(2, int.MaxValue, selectComma) });
             selectParamaters.Add(new List<WordRange>() { new WordRange(1, 2, new ColumnWord("", null, null, ParseCustomSyntax, false)) });
-            selectParamaters.Add(new List<WordRange>() { new WordRange(1, 2, new FunctionWord("", new List<List<WordRange>>(), ParseFunction)) });
+            selectParamaters.Add(new List<WordRange>() { new WordRange(1, 2, new FunctionWord("", new List<List<WordRange>>(), ParseFunction, null, null)) });
             keywordDictionary.Add("select", new Keyword("select", selectParamaters));
 
             List<List<WordRange>> fromParamaters = new List<List<WordRange>>();
@@ -124,12 +124,12 @@ namespace MyMySql
             selectCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["select"],  KeywordRangesThatDontWork = new List<List<WordRange>>()},
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["from"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
 
-            Command selectCommand = new Command(selectCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, typeof(Table), SelectFunction);
+            Command selectCommand = new Command(selectCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, typeof(Table), SelectFunction, NothingAfterCommmandFunction);
             commands.Add(selectCommand);
             Command whereCommand = new Command(new List<List<CommandKeywordInfo>>()
                                               { new List<CommandKeywordInfo>()
                                               { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["where"], KeywordRangesThatDontWork = new List<List<WordRange>>() } } },
-                                              new InputInfo() { InputType = typeof(Table), KeywordsNotAllowedAsInput = new List<string>() { "where" } }, typeof(Table), WhereFunction);
+                                              new InputInfo() { InputType = typeof(Table), KeywordsNotAllowedAsInput = new List<string>() { "where" } }, typeof(Table), WhereFunction, NothingAfterCommmandFunction);
             commands.Add(whereCommand);
             #endregion
 
@@ -159,7 +159,7 @@ namespace MyMySql
             insertCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["insert"],  KeywordRangesThatDontWork = new List<List<WordRange>>() { keywordDictionary["insert"].ChildrenRanges[0] } },
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["into"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["values"], KeywordRangesThatDontWork = new List<List<WordRange>>() }});
-            Command insertCommand = new Command(insertCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, null, InsertFunction);
+            Command insertCommand = new Command(insertCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, null, InsertFunction, NothingAfterCommmandFunction);
             commands.Add(insertCommand);
             #endregion
 
@@ -180,7 +180,7 @@ namespace MyMySql
 
             updateCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["update"],  KeywordRangesThatDontWork = new List<List<WordRange>>()},
                                                                    new CommandKeywordInfo() { CommandKeyword = keywordDictionary["set"], KeywordRangesThatDontWork = new List<List<WordRange>>() }});
-            Command updateCommand = new Command(updateCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, typeof(Table), UpdateFunction);
+            Command updateCommand = new Command(updateCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, typeof(Table), UpdateFunction, UpdateAfterFunction);
             commands.Add(updateCommand);
             #endregion
 
@@ -200,7 +200,7 @@ namespace MyMySql
             List<List<CommandKeywordInfo>> createTableCommandInfo = new List<List<CommandKeywordInfo>>();
             createTableCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["create"],  KeywordRangesThatDontWork = new List<List<WordRange>>()},
                                                                         new CommandKeywordInfo() { CommandKeyword = keywordDictionary["table"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
-            Command createTableCommand = new Command(createTableCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, null, CreateTableFunction);
+            Command createTableCommand = new Command(createTableCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, null, CreateTableFunction, NothingAfterCommmandFunction);
             commands.Add(createTableCommand);
             #endregion
 
@@ -225,9 +225,16 @@ namespace MyMySql
 
             joinCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() {CommandKeyword = keywordDictionary["join"], KeywordRangesThatDontWork = new List<List<WordRange>>() },
                                                                  new CommandKeywordInfo() {CommandKeyword = keywordDictionary["on"], KeywordRangesThatDontWork = new List<List<WordRange>>() } });
-            commands.Add(new Command(joinCommandInfo, new InputInfo() { InputType = typeof(Table), KeywordsNotAllowedAsInput = new List<string>() { "where" } }, typeof(Table), JoinFunction));
+            commands.Add(new Command(joinCommandInfo, new InputInfo() { InputType = typeof(Table), KeywordsNotAllowedAsInput = new List<string>() { "where", "delete", "update" } }, typeof(Table), JoinFunction, NothingAfterCommmandFunction));
             #endregion
 
+            #region DeleteRegion
+            keywordDictionary.Add("delete", new Keyword("delete", new List<List<WordRange>> { nothingWordRange }));
+            List<List<CommandKeywordInfo>> deleteCommandInfo = new List<List<CommandKeywordInfo>>();
+            deleteCommandInfo.Add(new List<CommandKeywordInfo>() { new CommandKeywordInfo() { CommandKeyword = keywordDictionary["delete"], KeywordRangesThatDontWork = new List<List<WordRange>>()},
+                                                                   new CommandKeywordInfo() {CommandKeyword = keywordDictionary["from"], KeywordRangesThatDontWork = new List<List<WordRange>>() }});
+            commands.Add(new Command(deleteCommandInfo, new InputInfo() { InputType = null, KeywordsNotAllowedAsInput = new List<string>() }, typeof(Table), DeleteFunction, DeleteAfterFunction));
+            #endregion
             #endregion
 
             Dictionary<string, SyntaxWord> parenthesesDictionary = new Dictionary<string, SyntaxWord>();
@@ -242,22 +249,21 @@ namespace MyMySql
             allWordDictionary.Add(AllWordTypes.MathOperation, new AllWordDictionaryInfo() { WordDictionary = new Hashtable(mathOpperationDictionary), DoToLower = false, ContainsListOfIWords = false });
 
 
-            functionDictionary.Add("*", new FunctionWord("*", new List<List<WordRange>>() { nothingWordRange }, ParseCustomSyntax));
+            functionDictionary.Add("*", new FunctionWord("*", new List<List<WordRange>>() { nothingWordRange }, ParseCustomSyntax, StarBeforeFunction, NothingAfterFunction));
 
             List<List<WordRange>> countParamaters = new List<List<WordRange>>();
             SyntaxWord countParentheses = new SyntaxWord(parenthesesSyntaxWord.Input, parenthesesSyntaxWord, parenthesesSyntaxWord.RangesThatWorked);
             countParentheses.ChildrenRanges.Add(new List<WordRange>() { new WordRange(1, 2, new ColumnWord("", null, null, ParseCustomSyntax, false)) });
             countParamaters.Add(new List<WordRange>() { new WordRange(1, 2, countParentheses) });
-            functionDictionary.Add("count", new FunctionWord("count", countParamaters, ParseFunction));
+            functionDictionary.Add("count", new FunctionWord("count", countParamaters, ParseFunction, CountBeforeFunction, CountAfterFunction));
 
 
             LoadXML(xdoc);
-            tables["Students"].Tree.BaseNode = null;
-            //tables.Add("Students", null);
-            //tables["Students"] = new Table("Students", new SqlColumn("StudentID", typeof(int)), new SqlColumn("Name", typeof(string)));
-            //tables["Students"].AddRow(0, "josiah");
-            //tables["Students"].AddRow(1, "bob");
-            //tables["Students"].AddRow(2, "joe");
+            //tables["Students"].Tree.BaseNode = null;
+            //tables.Add("Students2", null);
+            //tables["Students2"] = new Table("Students2", new SqlColumn("StudentID", typeof(int), tables["Students2"]), new SqlColumn("Name", typeof(string), tables["Students2"]));
+            //tables["Students2"].AddRow(0, "josiah");
+            //tables["Students2"].AddRow(1, "bob");
             //tables.Add("Animals", null);
             //tables["Animals"] = new Table("Animals", new SqlColumn("AnimalID", typeof(int)), new SqlColumn("Name", typeof(string)));
             //tables["Animals"].AddRow(0, "mesha");
@@ -289,48 +295,36 @@ namespace MyMySql
         {
             OutputInfo outputInfo = new OutputInfo() { Output = "", Errors = new List<string>(), SyntaxHighlightedInput = new RenderString(new List<RenderCharacter>()) };
 
-            CompilerInfo compilerInfo = RunCompilers(userInput);
-            outputInfo.SyntaxHighlightedInput = compilerInfo.SyntaxHighlightedInput;
-            outputInfo.Errors = compilerInfo.Errors;
-            if (outputInfo.Errors.Count == 0)
-            {
-                for (int i = 0; i < compilerInfo.Lexemes.Count; i++)
-                {
-                    outputInfo.Output += compilerInfo.Lexemes[i].GetType().Name + "Input: " + compilerInfo.Lexemes[i].Input;
-                    if (i + 1 < compilerInfo.Lexemes.Count)
-                    {
-                        outputInfo.Output += Environment.NewLine;
-                    }
-                }
-            }
+            outputInfo = RunCompilers(userInput);
             return outputInfo;
         }
 
-        public CompilerInfo RunCompilers(string userInput)
+        public OutputInfo RunCompilers(string userInput)
         {
-            CompilerInfo returnInfo = new CompilerInfo() { Lexemes = new List<IWord>(), Errors = new List<string>() };
+            OutputInfo returnInfo = new OutputInfo() { Output = "", Errors = new List<string>(), SyntaxHighlightedInput = new RenderString(new List<RenderCharacter>()) };
+            CompilerInfo compilerInfo = new CompilerInfo() { Lexemes = new List<IWord>(), Errors = new List<string>() };
 
             CompilerInfo lexicalInfo = LexicalComplier(userInput);
             returnInfo.Errors.AddRange(lexicalInfo.Errors);
-            returnInfo.Lexemes = lexicalInfo.Lexemes;
+            compilerInfo.Lexemes = lexicalInfo.Lexemes;
             returnInfo.SyntaxHighlightedInput = lexicalInfo.SyntaxHighlightedInput;
             if (returnInfo.Errors.Count == 0)
             {
                 CompilerInfo dotInfo = DotCompiler(lexicalInfo.Lexemes);
                 returnInfo.Errors.AddRange(dotInfo.Errors);
-                returnInfo.Lexemes = dotInfo.Lexemes;
+                compilerInfo.Lexemes = dotInfo.Lexemes;
                 returnInfo.SyntaxHighlightedInput = dotInfo.SyntaxHighlightedInput;
                 if (returnInfo.Errors.Count == 0)
                 {
                     CompilerInfo operationInfo = OperationCompiler(dotInfo.Lexemes);
                     returnInfo.Errors.AddRange(operationInfo.Errors);
-                    returnInfo.Lexemes = operationInfo.Lexemes;
+                    compilerInfo.Lexemes = operationInfo.Lexemes;
                     returnInfo.SyntaxHighlightedInput = operationInfo.SyntaxHighlightedInput;
                     if (returnInfo.Errors.Count == 0)
                     {
                         CompilerInfo commaInfo = CommaCompiler(operationInfo.Lexemes, null);
                         returnInfo.Errors.AddRange(commaInfo.Errors);
-                        returnInfo.Lexemes = commaInfo.Lexemes;
+                        compilerInfo.Lexemes = commaInfo.Lexemes;
                         returnInfo.SyntaxHighlightedInput = commaInfo.SyntaxHighlightedInput;
                         if (returnInfo.Errors.Count == 0)
                         {
@@ -354,14 +348,11 @@ namespace MyMySql
                                         CommandsInfo commandCustomCustomInfo = CommandCustomCustomCompiler(commandKeywordInfo.Commands);
                                         returnInfo.Errors.AddRange(commandCustomCustomInfo.Errors);
                                         returnInfo.SyntaxHighlightedInput = commandCustomCustomInfo.SyntaxHighlightedInput;
-                                        List<IWord> columns = new List<IWord>();
-                                        foreach (ColumnWord column in commandCustomCustomInfo.Commands[0].ColumnsInCommand)
+                                        foreach (Command command in commandCustomCustomInfo.Commands)
                                         {
-                                            columns.Add(column);
+                                            ICommandReturn commandInfo = command.RunCommand(null);
+                                            returnInfo.Output += commandInfo.ToString() + Environment.NewLine;
                                         }
-                                        columns.Add(new LexicalWord(""));
-                                        Table testSelect = SelectFunction(null, columns, commandCustomCustomInfo.Commands[0]).ReturnTable;
-                                        string test = DisplayTable(testSelect, testSelect.Select(), testSelect.SqlColumns);
                                     }
                                 }
                                 allWordDictionary = RemoveInitializingWordsFromDictionaries(allWordDictionary);
@@ -414,7 +405,7 @@ namespace MyMySql
                 tableElement.Add(binaryTree);
                 xdoc.Root.Add(tableElement);
             }
-            //xdoc.Save(xmlUrl);
+            xdoc.Save(xmlUrl);
         }
 
         XElement FillXMLBinaryTree(Table table, BSTNode<SqlRow> node, XElement currentElement)
@@ -441,156 +432,6 @@ namespace MyMySql
             newNode.Add(right);
             currentElement.Add(newNode);
             return currentElement;
-        }
-
-        /// <summary>
-        /// Displays a table and its data
-        /// </summary>
-        /// <param name="table">The table to diplay</param>
-        /// <param name="rows">The rows to display</param>
-        /// <param name="columns">The collumns to display</param>
-        /// <returns>Returns a string that represents the table with ASCII</returns>
-        string DisplayTable(Table table, List<SqlRow> rows, List<SqlColumn> columns)
-        {
-            string returnString = "";
-            List<int> columnWidths = new List<int>(); //How wide a column each needs to be in characters to fit all the data in it
-            int paddingSize = 1;
-            int headerLevel = 0;//The current level of the header being displayed 0 = bottom of Table, 1 = bottom of Header, 2 = header, 3 = top of Header 
-
-            //Characters for the sides and corners of the table
-            char cornerChar = '+';
-            char verticalChar = '|';
-            char horizontalChar = '-';
-
-            for (int i = 0; i < table.SqlColumns.Count; i++)
-            {
-                columnWidths.Add(table.SqlColumns[i].Name.Length);
-            }
-            //displays table without header
-            if (rows.Count > 0)
-            {
-                returnString += DisplayColumns(table, rows, columns, 0, 0, paddingSize, verticalChar, columnWidths, out columnWidths);
-                returnString += Environment.NewLine;
-            }
-            //loops through collumns to add header
-            for (int x = columns.Count - 1; x >= 0; x--)
-            {
-                //if header level is not the bottom of the table
-                if (headerLevel != 0)
-                {
-                    //if on last collumn new Line
-                    if (x + 1 >= columns.Count)
-                    {
-                        returnString = Environment.NewLine + returnString;
-                    }
-                    //if header level is not header display a solid line
-                    if (headerLevel != 2)
-                    {
-                        returnString = RepeatChar(horizontalChar, columnWidths[x] + (paddingSize * 2)) + cornerChar + returnString;
-                    }
-                    else
-                    {
-                        returnString = RepeatChar(' ', paddingSize) + columns[x].Name + RepeatChar(' ', columnWidths[x] + paddingSize - columns[x].Name.Length) + verticalChar + returnString;
-                    }
-                    //if on first collumn display cornerChar
-                    if (x == 0)
-                    {
-                        //if header level is the header display verticalChar else display cornerChar
-                        if (headerLevel == 2)
-                        {
-                            returnString = verticalChar + returnString;
-                        }
-                        else
-                        {
-                            returnString = cornerChar + returnString;
-                        }
-
-                    }
-                }
-                else
-                {
-                    int oppositeX = columns.Count - 1 - x;
-
-                    //if on first collumn display cornerChar
-                    if (oppositeX == 0)
-                    {
-                        returnString += cornerChar;
-                    }
-                    returnString += RepeatChar(horizontalChar, columnWidths[oppositeX] + (paddingSize * 2)) + cornerChar;
-                    //if on last collumn new Line
-                    if (oppositeX + 1 >= columns.Count)
-                    {
-                        returnString += Environment.NewLine;
-                    }
-                }
-                //if first collumn and current header level is not the top display the next header level
-                if (x == 0 && headerLevel < 3)
-                {
-                    headerLevel++;
-                    x = columns.Count;
-                }
-
-            }
-
-            return returnString;
-        }
-
-        //Displays the value for each column
-        string DisplayColumns(Table table, List<SqlRow> rows, List<SqlColumn> columns, int rowIndex, int columnIndex, int paddingSize, char verticalChar, List<int> currentColumnWidths, out List<int> columnWidths)
-        {
-            string returnString = "";
-            int amountOfExtraPaddingForRow;
-            columnWidths = currentColumnWidths;
-            string nextCollumn = "";
-            string nextRow = "";
-            //if on first collumn display wall
-            if (columnIndex == 0)
-            {
-                returnString += verticalChar;
-            }
-
-            //if this rows data is longer than the collumn width set the collumn width to the length of this rows data
-            if (columnWidths[columnIndex] < rows[rowIndex].Cells[columnIndex].Value.ToString().Length)
-            {
-                columnWidths[columnIndex] = rows[rowIndex].Cells[columnIndex].Value.ToString().Length;
-            }
-
-            returnString += RepeatChar(' ', paddingSize) + rows[rowIndex].Cells[columnIndex].Value.ToString();//Dislays current row and collumn value
-
-            //if not on last collumn get next collumn
-            if (columnIndex + 1 < columns.Count)
-            {
-                nextCollumn = DisplayColumns(table, rows, columns, rowIndex, columnIndex + 1, paddingSize, verticalChar, columnWidths, out columnWidths);
-            }
-            //if not on last row get next row
-            else if (rowIndex + 1 < rows.Count)
-            {
-                nextRow = DisplayColumns(table, rows, columns, rowIndex + 1, 0, paddingSize, verticalChar, columnWidths, out columnWidths);
-            }
-            //add padding for collumn
-            amountOfExtraPaddingForRow = columnWidths[columnIndex] - rows[rowIndex].Cells[columnIndex].Value.ToString().Length;
-            returnString += RepeatChar(' ', paddingSize + amountOfExtraPaddingForRow) + verticalChar;
-            //display next collumn and row
-            returnString += nextCollumn;
-            //if there is a next row new line and display it
-            if (nextRow != "")
-            {
-                returnString += Environment.NewLine + nextRow;
-            }
-
-
-            return returnString;
-        }
-
-        //Returns a string of a character repeated for a certain amount of time
-        string RepeatChar(char letter, int amountOfTimes)
-        {
-            string returnString = "";
-            for (int i = 0; i < amountOfTimes; i++)
-            {
-                returnString += letter;
-            }
-            return returnString;
         }
 
         #region LexicalStage
@@ -1484,6 +1325,7 @@ namespace MyMySql
                         Command possibleCommand = commandTrie.GetCommand(currentKeywords, commandTrie.BaseNode, 0);
                         if (possibleCommand != null)
                         {
+                            possibleCommand.KeywordsInCommand.Reverse();
                             returnInfo.Commands.Add(possibleCommand);
                             break;
                         }
@@ -1511,6 +1353,7 @@ namespace MyMySql
                     nextKeywords = new List<Keyword>();
                 }
             }
+
             if (returnInfo.Commands.Count == 0 && returnInfo.Errors.Count == 0)
             {
                 returnInfo.Errors.Add("Not a Full Command");
@@ -1756,117 +1599,235 @@ namespace MyMySql
         {
             Table returnTable;
             List<List<SqlRow>> allRows = new List<List<SqlRow>>();
+            List<int> factors = new List<int>();
             int amountOfRows = 0;
             for (int i = 0; i < command.TablesInCommand.Count; i++)
             {
-                allRows.Add(command.TablesInCommand[i].TableDirectory.Select());
-                if (amountOfRows == 0)
+                List<SqlRow> currentSelect = command.TablesInCommand[i].TableDirectory.Select();
+                allRows.Add(currentSelect);
+                if (currentSelect.Count > 0)
                 {
-                    amountOfRows = allRows.Last().Count;
+                    if (amountOfRows == 0)
+                    {
+                        amountOfRows = currentSelect.Count;
+                    }
+                    else
+                    {
+                        amountOfRows *= currentSelect.Count;
+                    }
+                    factors.Add(amountOfRows / currentSelect.Count);
                 }
                 else
                 {
-                    amountOfRows *= allRows.Last().Count;
+                    if (command.TablesInCommand.Count > 1)
+                    {
+                        factors.Add(1);
+
+                        IComparable[] values = new IComparable[command.TablesInCommand[i].TableDirectory.SqlColumns.Count];
+                        for (int j = 0; j < values.Length; j++)
+                        {
+                            values[j] = new NullICompareable();
+                        }
+                        currentSelect.Add(new SqlRow(0, command.TablesInCommand[i].TableDirectory, values));
+                    }
+                    else
+                    {
+                        factors.Add(0);
+                    }
+                }
+            }
+
+            for (int i = 0; i < allRows.Count; i++)
+            {
+                List<SqlRow> originalSelect = new List<SqlRow>(allRows[i]);
+                allRows[i] = new List<SqlRow>();
+                for (int k = 0; k < originalSelect.Count; k++)
+                {
+                    for (int j = 0; j < factors[i]; j++)
+                    {
+                        allRows[i].Add(originalSelect[k]);
+                    }
+                    if (k + 1 >= originalSelect.Count && allRows[i].Count < amountOfRows)
+                    {
+                        k = -1;
+                    }
                 }
             }
 
             List<SqlColumn> returnTableColumns = new List<SqlColumn>();
-            //List<List<List<IComparable>>> rowsCells = new List<List<List<IComparable>>>();
-            List<IComparable> emptyValuesList = new List<IComparable>();
             for (int i = 0; i < words.Count - 1; i++)
             {
                 SqlColumn currentColumn = ((ColumnWord)words[i]).ColumnDirectory;
                 returnTableColumns.Add(currentColumn);
-                emptyValuesList.Add(new EmptyICompareable());
             }
-            IComparable[] emptyValues = emptyValuesList.ToArray();
             returnTable = new Table("", returnTableColumns.ToArray());
-            SqlRow[] tableRows = new SqlRow[amountOfRows];
-            
-            for (int i = 0; i < returnTableColumns.Count; i++)
+            int returnTableColumnIndex = 0;
+            List<List<SqlCell>> returnRows = new List<List<SqlCell>>();
+            for (int table = 0; table < allRows.Count + 1; table++)
             {
-                int tableRowIndex = 0;
-                List<SqlRow> currentSelect = returnTableColumns[i].OwningTable.Select();
-                foreach (SqlRow row in currentSelect)
+                if (returnTableColumnIndex >= returnTableColumns.Count)
                 {
-                    int columnIndex = row.GetColumnIndex(returnTableColumns[i]);
-                    if (columnIndex >= 0)
+                    break;
+                }
+                if (table >= allRows.Count)
+                {
+                    table = 0;
+                }
+                for (int colInd = returnTableColumnIndex; colInd < returnTableColumns.Count; colInd++)
+                {
+                    bool goToNextTable = false;
+                    for (int row = 0; row < amountOfRows; row++)
                     {
-                        SqlRow currentRow;
-                        if (tableRows[tableRowIndex] == null)
+                        //rowIndex = row + 1;
+                        List<SqlCell> currentRow;
+                        if (returnRows.Count <= row)
                         {
-                            currentRow = returnTable.AddRow(emptyValues);
+                            currentRow = new List<SqlCell>();
+                            returnRows.Add(currentRow);
                         }
                         else
                         {
-                            currentRow = tableRows[tableRowIndex];
+                            currentRow = returnRows[row];
                         }
-                        currentRow.Cells[i].Value = row.Cells[columnIndex].Value;
-                        tableRows[tableRowIndex] = currentRow;
-                        tableRowIndex++;
-                    }
 
+                        int columnIndex = allRows[table][row].GetColumnIndex(returnTableColumns[colInd]);
+                        if (columnIndex >= 0)
+                        {
+                            currentRow.Add(allRows[table][row].Cells[columnIndex]);
+                        }
+                        else
+                        {
+                            goToNextTable = true;
+                            break;
+                        }
+
+                    }
+                    returnTableColumnIndex = colInd + 1;
+                    if (goToNextTable)
+                    {
+                        break;
+                    }
                 }
             }
-
-            //for (int i = 0; i < allRows[0].Count; i++)
-            //{
-            //    List<SqlCell> fistTableCells = new List<SqlCell>();
-            //    foreach (SqlColumn column in returnTableColumns)
-            //    {
-            //        int columnIndex = allRows[0][i].GetColumnIndex(column);
-            //        if (columnIndex >= 0)
-            //        {
-            //            fistTableCells.Add(allRows[0][i].Cells[columnIndex]);
-            //        }
-            //    }
-            //    if (allRows.Count > 1)
-            //    {
-            //        for (int j = 1; j < allRows.Count; j++)
-            //        {
-            //            foreach (SqlRow row in allRows[j])
-            //            {
-            //                List<SqlCell> thisRowCells = new List<SqlCell>(fistTableCells);
-            //                foreach (SqlColumn column in returnTableColumns)
-            //                {
-            //                    int columnIndex = row.GetColumnIndex(column);
-            //                    if (columnIndex >= 0)
-            //                    {
-            //                        thisRowCells.Add(row.Cells[columnIndex]);
-            //                    }
-            //                }
-
-            //                returnTable.AddRow(thisRowCells);
-            //            }
-            //        }
-            //    }
-            //    else
-            //    {
-            //        returnTable.AddRow(fistTableCells);
-            //    }
-            //}
-
+            foreach (List<SqlCell> row in returnRows)
+            {
+                returnTable.AddRow(row);
+            }
             return returnTable;
         }
         public ICommandReturn WhereFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
-            return null;
+            return commandReturn;
         }
         public ICommandReturn InsertFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
-            return null;
+            int amountOfItemsInserted = 0;
+            TableWord table = (TableWord)words[0];
+            for (int i = 1; i < words.Count; i += table.TableDirectory.SqlColumns.Count)
+            {
+                amountOfItemsInserted++;
+                IComparable[] values = new IComparable[table.TableDirectory.SqlColumns.Count];
+                for (int j = 0; j < table.TableDirectory.SqlColumns.Count; j++)
+                {
+                    CustomCustomWord customCustom = (CustomCustomWord)words[i + j];
+                    values[j] = customCustom.Data;
+                }
+                table.TableDirectory.AddRow(values);
+            }
+            return new RenderString(amountOfItemsInserted.ToString() + " Rows(s) Inserted" + Environment.NewLine, Color.Black);
         }
         public ICommandReturn CreateTableFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
-            return null;
+            return commandReturn;
         }
         public ICommandReturn UpdateFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
-            return null;
+            return commandReturn;
+        }
+        public ICommandReturn UpdateAfterFunction(ICommandReturn commandReturn, Command command)
+        {
+            return commandReturn;
         }
         public ICommandReturn JoinFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
-            return null;
+            return commandReturn;
+        }
+
+        public ICommandReturn DeleteFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
+        {
+            return command.TablesInCommand[0].TableDirectory;
+        }
+        public ICommandReturn DeleteAfterFunction(ICommandReturn commandReturn, Command command)
+        {
+            int amountOfRowsDeleted = 0;
+            List<SqlRow> rowsToDelete = commandReturn.ReturnTable.Select();
+            foreach (TableWord table in command.TablesInCommand)
+            {
+                foreach (SqlRow row in rowsToDelete)
+                {
+                    table.TableDirectory.Delete(row);
+                    amountOfRowsDeleted++;
+                }
+            }
+
+            return new RenderString(amountOfRowsDeleted.ToString() + " Rows(s) Deleted" + Environment.NewLine, Color.Black);
+        }
+
+        public ICommandReturn NothingAfterCommmandFunction(ICommandReturn commandReturn, Command command)
+        {
+            return commandReturn;
+        }
+
+
+        public List<IWord> StarBeforeFunction(FunctionWord function, List<TableWord> tables)
+        {
+            List<IWord> returnList = new List<IWord>();
+            foreach (TableWord table in tables)
+            {
+                foreach (SqlColumn column in table.TableDirectory.SqlColumns)
+                {
+                    returnList.Add(new ColumnWord(column.Name, column, column.OwningTable, ParseCustomSyntax, false));
+                }
+            }
+            return returnList;
+        }
+
+        public ICommandReturn NothingAfterFunction(FunctionWord function, ICommandReturn commandReturn)
+        {
+            return commandReturn;
+        }
+        
+        public List<IWord> CountBeforeFunction(FunctionWord function, List<TableWord> tables)
+        {
+            return function.Children[0].Children;
+        }
+        public ICommandReturn CountAfterFunction(FunctionWord function, ICommandReturn commandReturn)
+        {
+            SqlColumn[] columns = new SqlColumn[commandReturn.ReturnTable.SqlColumns.Count];
+            IComparable[] values = new IComparable[commandReturn.ReturnTable.SqlColumns.Count];
+            for (int i = 0; i < commandReturn.ReturnTable.SqlColumns.Count; i++)
+            {
+                List<SqlRow> rows = commandReturn.ReturnTable.Select();
+                values[i] = 0;
+                columns[i] = new SqlColumn(commandReturn.ReturnTable.SqlColumns[i].Name, typeof(int), commandReturn.ReturnTable);
+                if (rows.Count > 0)
+                {
+                    int amountOfRows = 0;
+                    int columnIndex = rows[0].GetColumnIndex(commandReturn.ReturnTable.SqlColumns[i]);
+                    foreach (SqlRow row in rows)
+                    {
+                        if (!row.Cells[columnIndex].Null)
+                        {
+                            amountOfRows++;
+                        }
+                    }
+                    values[i] = amountOfRows;
+                }
+            }
+
+            Table returnTable = new Table(commandReturn.ReturnTable.Name, columns);
+            returnTable.AddRow(values);
+            return returnTable;
         }
         #endregion
     }

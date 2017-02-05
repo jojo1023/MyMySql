@@ -21,6 +21,7 @@ namespace MyMySql
         List<IWord> WordsThisCouldBe { get; set; }
         bool Initializing { get; set; }
         Type VarType { get; set; }
+        bool UserInfo { get; set; }
     }
     public struct ParseSyntaxInfo
     {

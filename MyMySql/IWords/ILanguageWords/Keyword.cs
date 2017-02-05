@@ -64,6 +64,7 @@ namespace MyMySql.IWords.ILanguageWords
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
         public Type VarType { get; set; }
+        public bool UserInfo { get; set; }
         public Keyword(string input, List<List<WordRange>> ranges)
         {
             Input = input;
@@ -77,6 +78,7 @@ namespace MyMySql.IWords.ILanguageWords
             Initializing = false;
             RangesThatWorked = null;
             VarType = null;
+            UserInfo = false;
         }
 
         public Keyword(Keyword other, List<IWord> keywordParameters, List<WordRange> rangesThatWorked)
@@ -92,6 +94,7 @@ namespace MyMySql.IWords.ILanguageWords
             Initializing = false;
             RangesThatWorked = rangesThatWorked;
             VarType = null;
+            UserInfo = false;
         }
     }
 

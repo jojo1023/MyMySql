@@ -53,7 +53,7 @@
     <Compile Include="RenderCharacter.cs" />
     <Compile Include="RenderString.cs" />
     <Compile Include="TableStuff\ColumnValuePair.cs" />
-    <Compile Include="TableStuff\EmptyICompareable.cs" />
+    <Compile Include="TableStuff\NullICompareable.cs" />
     <Compile Include="TreeStuff\BinaryTree.cs" />
     <Compile Include="IWords\ICustomWords\ColumnWord.cs" />
     <Compile Include="IWords\CustomCustomWord.cs" />
