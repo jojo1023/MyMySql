@@ -58,6 +58,7 @@ namespace MyMySql
         Syntax,
         Keyword,
         Lexical,
-        Function
+        Function,
+        TempSyntaxOperation
     }
 }

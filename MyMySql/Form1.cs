@@ -27,10 +27,18 @@ namespace MyMySql
         }
         private void executeButton_Click(object sender, EventArgs e)
         {
-            OutputInfo outputInfo = database.DoSQlStuff(inputTextBox.Text);
+            OutputInfo outputInfo;
+            string selectedText = inputTextBox.SelectedText;
+            if (selectedText != "")
+            {
+                outputInfo = database.DoSQlStuff(selectedText);
+            }
+            else
+            {
+                outputInfo = database.DoSQlStuff(inputTextBox.Text);
+            }
             errorTextBox.Text = "";
             outputTextBox.Text = outputInfo.Output;
-            
             for(int i = 0; i < outputInfo.Errors.Count; i++)
             {
                 errorTextBox.Text += outputInfo.Errors[i];

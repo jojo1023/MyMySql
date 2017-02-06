@@ -1,4 +1,5 @@
 ﻿using MyMySql.ICustomWords;
+using MyMySql.IWords.ILanguageWords;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 namespace MyMySql.IWords.ICustomWords
 {
     [DebuggerDisplay("ColumnInput = {Input}")]
-    public class ColumnWord : ICustomWord
+    public class ColumnWord : ICustomWord, IOperation
     {
         public string Alias { get; set; }
 
@@ -35,6 +36,15 @@ namespace MyMySql.IWords.ICustomWords
         public List<WordRange> RangesThatWorked { get; set; }
         public Type VarType { get; set; }
         public bool UserInfo { get; set; }
+
+        public IOperation LeftChild { get; set; }
+
+        public IOperation RightChild { get; set; }
+
+        public IWord UnParsedLeftChild { get; set; }
+
+        public IWord UnParsedRightChild { get; set; }
+        public int OrderOfOperationIndex { get; set; }
         public ColumnWord(string input, SqlColumn columnDirectory, Table owningTasble, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, bool initializing)
         {
             Alias = input;
@@ -59,6 +69,11 @@ namespace MyMySql.IWords.ICustomWords
                 VarType = ColumnDirectory.VarType;
             }
             UserInfo = true;
+            LeftChild = null;
+            RightChild = null;
+            UnParsedLeftChild = null;
+            UnParsedRightChild = null;
+            OrderOfOperationIndex = 0;
         }
         public ColumnWord(ColumnWord other)
         {
@@ -84,6 +99,11 @@ namespace MyMySql.IWords.ICustomWords
             {
                 VarType = ColumnDirectory.VarType;
             }
+            LeftChild = null;
+            RightChild = null;
+            UnParsedLeftChild = null;
+            UnParsedRightChild = null;
+            OrderOfOperationIndex = 0;
         }
     }
 }

@@ -49,6 +49,7 @@
     <Compile Include="ICommandReturn.cs" />
     <Compile Include="IWords\Command.cs" />
     <Compile Include="IWords\ILanguageWords\FunctionWord.cs" />
+    <Compile Include="IWords\ILanguageWords\IOpperation.cs" />
     <Compile Include="IWords\WordRange.cs" />
     <Compile Include="RenderCharacter.cs" />
     <Compile Include="RenderString.cs" />

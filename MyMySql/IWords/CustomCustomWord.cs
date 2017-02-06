@@ -1,4 +1,5 @@
 ﻿using MyMySql.ICustomWords;
+using MyMySql.IWords.ILanguageWords;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 namespace MyMySql.IWords.ICustomWords
 {
     [DebuggerDisplay("CustomCustomInput = {Input}")]
-    public class CustomCustomWord : IWord
+    public class CustomCustomWord : IOperation
     {
         public string Input { get; set; }
 
@@ -32,6 +33,17 @@ namespace MyMySql.IWords.ICustomWords
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
         public bool UserInfo { get; set; }
+
+        public IOperation LeftChild { get; set; }
+
+        public IOperation RightChild { get; set; }
+
+        public IWord UnParsedLeftChild { get; set; }
+
+        public IWord UnParsedRightChild { get; set; }
+
+        public int OrderOfOperationIndex { get; set; }
+
         public CustomCustomWord(string input, Type varType, IComparable data, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax)
         {
             Input = input;
@@ -47,6 +59,11 @@ namespace MyMySql.IWords.ICustomWords
             Initializing = false;
             RangesThatWorked = null;
             UserInfo = true;
+            LeftChild = null;
+            RightChild = null;
+            UnParsedLeftChild = null;
+            UnParsedRightChild = null;
+            OrderOfOperationIndex = 0;
         }
         
     }

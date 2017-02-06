@@ -20,8 +20,8 @@ namespace MyMySql.IWords
         public Type Output { get; set; }
         public Command ChildCommand { get; set; }
         public Func<ICommandReturn, List<IWord>, Command, ICommandReturn> BeforeChildCommandFunction { get; set; }
-        public Func<ICommandReturn, Command, ICommandReturn> AfterChildCommandFunction { get; set; }
-        public Command(List<List<CommandKeywordInfo>> keywordsInCommand, InputInfo input, Type output, Func<ICommandReturn, List<IWord>, Command, ICommandReturn> beforeChildCommandFucntion, Func<ICommandReturn, Command, ICommandReturn> afterChildCommandFunction)
+        public Func<ICommandReturn, List<IWord>, Command, ICommandReturn> AfterChildCommandFunction { get; set; }
+        public Command(List<List<CommandKeywordInfo>> keywordsInCommand, InputInfo input, Type output, Func<ICommandReturn, List<IWord>, Command, ICommandReturn> beforeChildCommandFucntion, Func<ICommandReturn, List<IWord>, Command, ICommandReturn> afterChildCommandFunction)
         {
             KeywordsInCommand = keywordsInCommand;
             TablesInCommand = new List<TableWord>();
@@ -127,7 +127,7 @@ namespace MyMySql.IWords
             {
                 commandReturn = ChildCommand.RunCommand(commandReturn);
             }
-            commandReturn = AfterChildCommandFunction.Invoke(commandReturn, this);
+            commandReturn = AfterChildCommandFunction.Invoke(commandReturn, userInfo, this);
             foreach (FunctionWord function in functions)
             {
                 commandReturn = function.AfterCommandFunction.Invoke(function, commandReturn);

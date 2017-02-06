@@ -61,40 +61,50 @@ namespace MyMySql
             dotSyntaxWord = new SyntaxWord('.', new List<char>(), true, AddBreakFunc, AllWordTypes.Syntax, null, new List<List<WordRange>>());
             syntaxDictionary.Add('.', dotSyntaxWord);
 
-            List<List<WordRange>> logicWordRange = new List<List<WordRange>>();
-            logicWordRange.Add(new List<WordRange>() { new WordRange(1, 2, new ColumnWord("", null, null, ParseCustomSyntax, false)), new WordRange(1, 2, new ColumnWord("", null, null, ParseCustomSyntax, false)) });
-            logicWordRange.Add(new List<WordRange>() { new WordRange(1, 2, new CustomCustomWord("", null, null, ParseCustomCustomSyntax)), new WordRange(1, 2, new CustomCustomWord("", null, null, ParseCustomCustomSyntax)) });
-            logicWordRange.Add(new List<WordRange>() { new WordRange(1, 2, new ColumnWord("", null, null, ParseCustomSyntax, false)), new WordRange(1, 2, new CustomCustomWord("", null, null, ParseCustomCustomSyntax)) });
-            logicWordRange.Add(new List<WordRange>() { new WordRange(1, 2, new CustomCustomWord("", null, null, ParseCustomCustomSyntax)), new WordRange(1, 2, new ColumnWord("", null, null, ParseCustomSyntax, false)) });
+            List<List<WordRange>> oppeartionListOfRanges = new List<List<WordRange>>();
+            List<WordRange> opperationRanges = new List<WordRange>() { new WordRange(1, 2, new ColumnWord("", null, null, ParseCustomSyntax, false)), new WordRange(1, 2, new CustomCustomWord("", null, null, ParseCustomCustomSyntax)), new WordRange(1, 2, new MathOperationWord("", 0, oppeartionListOfRanges, null, ParseSyntaxWithChildren)) };
+            oppeartionListOfRanges = GetAllPossibleWordRanges(opperationRanges, opperationRanges);
 
-            logicOperationDictionary.Add("=", new LogicOperationWord("=", null, ParseLogicOpperationSyntax, logicWordRange));
-            logicOperationDictionary.Add("<=", new LogicOperationWord("<=", null, ParseLogicOpperationSyntax, logicWordRange));
-            logicOperationDictionary.Add(">=", new LogicOperationWord(">=", null, ParseLogicOpperationSyntax, logicWordRange));
-            logicOperationDictionary.Add("!=", new LogicOperationWord("!=", null, ParseLogicOpperationSyntax, logicWordRange));
-            logicOperationDictionary.Add("<", new LogicOperationWord("<", null, ParseLogicOpperationSyntax, logicWordRange));
-            logicOperationDictionary.Add(">", new LogicOperationWord(">", null, ParseLogicOpperationSyntax, logicWordRange));
+            foreach (List<WordRange> ranges in oppeartionListOfRanges)
+            {
+                foreach (WordRange range in ranges)
+                {
+                    if (range.TypeOfWord.AllWordType == AllWordTypes.MathOperation)
+                    {
+                        range.TypeOfWord.ChildrenRanges = oppeartionListOfRanges;
+                    }
+                }
+            }
+            logicOperationDictionary.Add("=", new LogicOperationWord("=", 4, null, ParseSyntaxWithChildren, oppeartionListOfRanges));
+            logicOperationDictionary.Add("<=", new LogicOperationWord("<=", 3, null, ParseSyntaxWithChildren, oppeartionListOfRanges));
+            logicOperationDictionary.Add(">=", new LogicOperationWord(">=", 3, null, ParseSyntaxWithChildren, oppeartionListOfRanges));
+            logicOperationDictionary.Add("!=", new LogicOperationWord("!=", 4, null, ParseSyntaxWithChildren, oppeartionListOfRanges));
+            logicOperationDictionary.Add("<", new LogicOperationWord("<", 3, null, ParseSyntaxWithChildren, oppeartionListOfRanges));
+            logicOperationDictionary.Add(">", new LogicOperationWord(">", 3, null, ParseSyntaxWithChildren, oppeartionListOfRanges));
+
             foreach (string key in logicOperationDictionary.Keys)
             {
                 for (int i = 0; i < key.Length; i++)
                 {
                     if (!syntaxDictionary.ContainsKey(key[i]))
                     {
-                        syntaxDictionary.Add(key[i], new SyntaxWord(key[i], new List<char>(), true, AddBreakFunc, AllWordTypes.Syntax, ParseToWordType, new List<List<WordRange>>()));
+                        syntaxDictionary.Add(key[i], new SyntaxWord(key[i], new List<char>(), true, AddBreakFunc, AllWordTypes.TempSyntaxOperation, ParseSyntaxWithChildren, new List<List<WordRange>>()));
                         logicOpperationChars.Add(key[i]);
                     }
                 }
             }
-            mathOpperationDictionary.Add("+", new MathOperationWord("+", null, ParseToWordType));
-            mathOpperationDictionary.Add("-", new MathOperationWord("-", null, ParseToWordType));
-            mathOpperationDictionary.Add("*", new MathOperationWord("*", null, ParseToWordType));
-            mathOpperationDictionary.Add("/", new MathOperationWord("/", null, ParseToWordType));
+
+            mathOpperationDictionary.Add("+", new MathOperationWord("+", 2, oppeartionListOfRanges, null, ParseSyntaxWithChildren));
+            mathOpperationDictionary.Add("-", new MathOperationWord("-", 2, oppeartionListOfRanges, null, ParseSyntaxWithChildren));
+            mathOpperationDictionary.Add("*", new MathOperationWord("*", 1, oppeartionListOfRanges, null, ParseSyntaxWithChildren));
+            mathOpperationDictionary.Add("/", new MathOperationWord("/", 1, oppeartionListOfRanges, null, ParseSyntaxWithChildren));
             foreach (string key in mathOpperationDictionary.Keys)
             {
                 for (int i = 0; i < key.Length; i++)
                 {
                     if (!syntaxDictionary.ContainsKey(key[i]))
                     {
-                        syntaxDictionary.Add(key[i], new SyntaxWord(key[i], new List<char>(), true, AddBreakFunc, AllWordTypes.Syntax, ParseToWordType, new List<List<WordRange>>()));
+                        syntaxDictionary.Add(key[i], new SyntaxWord(key[i], new List<char>(), true, AddBreakFunc, AllWordTypes.TempSyntaxOperation, ParseToWordType, new List<List<WordRange>>()));
                         mathOpperationChars.Add(key[i]);
                     }
                 }
@@ -117,7 +127,7 @@ namespace MyMySql
             keywordDictionary.Add("from", new Keyword("from", fromParamaters));
 
             List<List<WordRange>> whereParamaters = new List<List<WordRange>>();
-            whereParamaters.Add(new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("", null, ParseLogicOpperationSyntax, logicWordRange)) });
+            whereParamaters.Add(new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("",0, null, ParseSyntaxWithChildren, oppeartionListOfRanges)) });
             keywordDictionary.Add("where", new Keyword("where", whereParamaters));
 
             List<List<CommandKeywordInfo>> selectCommandInfo = new List<List<CommandKeywordInfo>>();
@@ -167,7 +177,7 @@ namespace MyMySql
             keywordDictionary.Add("update", new Keyword("update", fromParamaters));
 
             List<List<WordRange>> setParameters = new List<List<WordRange>>();
-            List<WordRange> columnLogicColumnWordRanges = new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("", null, ParseLogicOpperationSyntax, new List<List<WordRange>>() { logicWordRange[2] })) };
+            List<WordRange> columnLogicColumnWordRanges = new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("", 0, null, ParseSyntaxWithChildren, new List<List<WordRange>>() { oppeartionListOfRanges[2] })) };
             setParameters.Add(columnLogicColumnWordRanges);
             SyntaxWord setComma = new SyntaxWord(commaSyntaxWord.Input, commaSyntaxWord, commaSyntaxWord.RangesThatWorked);
             setComma.ChildrenRanges.Add(columnLogicColumnWordRanges);
@@ -215,7 +225,7 @@ namespace MyMySql
             List<List<WordRange>> onRanges = new List<List<WordRange>>();
             List<List<WordRange>> onLogicRanges = new List<List<WordRange>>();
             onLogicRanges.Add(new List<WordRange>() { new WordRange(2, 3, new ColumnWord("", null, null, ParseCustomSyntax, false)) });
-            onRanges.Add(new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("", null, ParseLogicOpperationSyntax, onLogicRanges)) });
+            onRanges.Add(new List<WordRange>() { new WordRange(1, 2, new LogicOperationWord("", 0, null, ParseSyntaxWithChildren, onLogicRanges)) });
             keywordDictionary.Add("on", new Keyword("on", onRanges));
 
             List<List<CommandKeywordInfo>> joinCommandInfo = new List<List<CommandKeywordInfo>>();
@@ -633,7 +643,7 @@ namespace MyMySql
             for (int i = 0; i < lexemes.Count; i++)
             {
                 //if the lexeme is a syntax word handle the commas of the words inside the syntax
-                if (lexemes[i].WordType == WordTypes.Language && lexemes[i].AllWordType != commaSyntaxWord.AllWordType)
+                if (lexemes[i].WordType == WordTypes.Language && lexemes[i].AllWordType != commaSyntaxWord.AllWordType && lexemes[i].Children.Count > 0)
                 {
                     CompilerInfo syntaxInfo = CommaCompiler(lexemes[i].Children, lexemes[i]);
                     if (syntaxInfo.Errors.Count == 0)
@@ -769,54 +779,132 @@ namespace MyMySql
             for (int i = returnInfo.Lexemes.Count - 1; i >= 0; i--)
             {
                 //if the current lexeme is an opperation lexeme then find the rest of the opperation and change this lexeme to an opperation
-                if (returnInfo.Lexemes[i].WordType == WordTypes.Language)
+                if (returnInfo.Lexemes[i].AllWordType == AllWordTypes.TempSyntaxOperation)
                 {
                     SyntaxWord syntaxLexeme = (SyntaxWord)returnInfo.Lexemes[i];
                     if (logicOpperationChars.Contains(syntaxLexeme.StartingSyntax) || mathOpperationChars.Contains(syntaxLexeme.StartingSyntax))
                     {
                         string fullOperation = syntaxLexeme.Input;
                         //loops forward in the lexemes to get the fullOperation 
-                        for (int j = i + 1; j < returnInfo.Lexemes.Count; j++)
+                        for (int j = i - 1; j >= 0; j--)
                         {
-                            if (returnInfo.Lexemes[j].WordType == WordTypes.Language && (logicOpperationChars.Contains(((SyntaxWord)returnInfo.Lexemes[j]).StartingSyntax) || mathOpperationChars.Contains(((SyntaxWord)returnInfo.Lexemes[j]).StartingSyntax)))
+                            if (returnInfo.Lexemes[j].AllWordType == AllWordTypes.TempSyntaxOperation && (logicOpperationChars.Contains(((SyntaxWord)returnInfo.Lexemes[j]).StartingSyntax) || mathOpperationChars.Contains(((SyntaxWord)returnInfo.Lexemes[j]).StartingSyntax)))
                             {
-                                fullOperation += returnInfo.Lexemes[j].Input;
+                                fullOperation = returnInfo.Lexemes[j].Input + fullOperation;
                                 returnInfo.Lexemes.RemoveAt(j);
-                                j = j - 1;
+                                j = j + 1;
                             }
                             else
                             {
                                 break;
                             }
                         }
+                        bool breakAfterSetingChildren = false;
+                        IWord leftWord = null;
+                        if (i - 1 > 0 && returnInfo.Lexemes[i - 2].AllWordType == AllWordTypes.TempSyntaxOperation)
+                        {
+                            List<IWord> previousLexemes = returnInfo.Lexemes.Take(i).ToList();
+                            int previousLexemesCount = previousLexemes.Count;
+                            returnInfo.Lexemes.RemoveRange(0, i);
+                            List<IWord> nextLexemes = new List<IWord>(returnInfo.Lexemes);
+                            CompilerInfo previousLexemesInfo = OperationCompiler(previousLexemes);
+                            if (previousLexemesInfo.Errors.Count == 0)
+                            {
+                                i = i - (previousLexemesCount - previousLexemesInfo.Lexemes.Count);
+                                if (previousLexemesInfo.Lexemes.Last().AllWordType == AllWordTypes.LogicOperation || previousLexemesInfo.Lexemes.Last().AllWordType == AllWordTypes.MathOperation)
+                                {
+                                    leftWord = previousLexemesInfo.Lexemes.Last();
+                                    previousLexemesInfo.Lexemes.RemoveAt(previousLexemesInfo.Lexemes.Count - 1);
+                                    i = i - 1;
+                                    previousLexemesInfo.Lexemes.AddRange(nextLexemes);
+                                    returnInfo.Lexemes = previousLexemesInfo.Lexemes;
+                                }
+                                breakAfterSetingChildren = true;
+                            }
+                            else
+                            {
+                                returnInfo.Errors.AddRange(previousLexemesInfo.Errors);
+                                break;
+                            }
+                        }
+                        else if (i > 0)
+                        {
+                            leftWord = returnInfo.Lexemes[i - 1];
+                            returnInfo.Lexemes.RemoveAt(i - 1);
+                            i = i - 1;
+                        }
+                        IWord rightWord = null;
+                        if (i + 1 < returnInfo.Lexemes.Count)
+                        {
+                            rightWord = returnInfo.Lexemes[i + 1];
+                            returnInfo.Lexemes.RemoveAt(i + 1);
+                        }
 
+                        IOperation operation;
                         //Sets the current lexeme to an opperation
                         if (logicOperationDictionary.Keys.Contains(fullOperation))
                         {
-                            IWord leftWord = null;
-                            IWord rightWord = null;
-                            if (i > 0 && i + 1 < returnInfo.Lexemes.Count)
-                            {
-                                leftWord = returnInfo.Lexemes[i - 1];
-                                rightWord = returnInfo.Lexemes[i + 1];
-                                returnInfo.Lexemes.RemoveAt(i + 1);
-                                returnInfo.Lexemes.RemoveAt(i - 1);
-                                i = i - 1;
-                            }
-                            else
-                            {
-                                returnInfo.Errors.Add("Must be something to left or right of opperation");
-                                break;
-                            }
-                            returnInfo.Lexemes[i] = new LogicOperationWord(leftWord, rightWord, new List<WordRange>(), logicOperationDictionary[fullOperation]);
+                            returnInfo.Lexemes[i] = operation = new LogicOperationWord(leftWord, rightWord, new List<WordRange>(), logicOperationDictionary[fullOperation]);
                         }
                         else if (mathOpperationDictionary.Keys.Contains(fullOperation))
                         {
-                            returnInfo.Lexemes[i] = new MathOperationWord(fullOperation, mathOpperationDictionary[fullOperation].MathFunction, mathOpperationDictionary[fullOperation].ParseSyntax);
+                            returnInfo.Lexemes[i] = operation = new MathOperationWord(leftWord, rightWord, mathOpperationDictionary[fullOperation]);
                         }
                         else
                         {
                             returnInfo.Errors.Add("Incorect use of " + fullOperation);
+                            break;
+                        }
+
+                        IOperation leftOperation = null;
+                        if (leftWord is IOperation)
+                        {
+                            leftOperation = (IOperation)leftWord;
+                        }
+                        IOperation rightOperation = null;
+                        if (rightWord is IOperation)
+                        {
+                            rightOperation = (IOperation)rightWord;
+                        }
+
+                        if(leftOperation != null && leftOperation.OrderOfOperationIndex > operation.OrderOfOperationIndex)
+                        {
+                            operation.UnParsedLeftChild = null;
+                            operation.UnParsedLeftChild = leftOperation.UnParsedRightChild;
+                            leftOperation.UnParsedRightChild = null;
+                            leftOperation.UnParsedRightChild = operation;
+                            IOperation temp = operation;
+                            operation = null;
+                            operation = leftOperation;
+                            leftOperation = temp;
+                            rightOperation = null;
+                            returnInfo.Lexemes[i] = operation;
+                            if (rightWord is IOperation)
+                            {
+                                rightOperation = (IOperation)operation.UnParsedRightChild;
+                            }
+                        }
+
+                        if (rightOperation != null && rightOperation.OrderOfOperationIndex > operation.OrderOfOperationIndex)
+                        {
+                            operation.UnParsedRightChild = null;
+                            operation.UnParsedRightChild = leftOperation.UnParsedLeftChild;
+                            rightOperation.UnParsedLeftChild = null;
+                            rightOperation.UnParsedLeftChild = operation;
+                            IOperation temp = operation;
+                            operation = null;
+                            operation = rightOperation;
+                            rightOperation = temp;
+                            leftOperation = null;
+                            returnInfo.Lexemes[i] = operation;
+                            if (leftWord is IOperation)
+                            {
+                                leftOperation = (IOperation)operation.UnParsedLeftChild;
+                            }
+                        }
+
+                        if (breakAfterSetingChildren)
+                        {
                             break;
                         }
                     }
@@ -1278,36 +1366,7 @@ namespace MyMySql
             returnInfo.Word = returnWord;
             return returnInfo;
         }
-
-        public ParseSyntaxInfo ParseLogicOpperationSyntax(IWord wordToParse, IWord wordInstructions)
-        {
-            ParseSyntaxInfo returnInfo = new ParseSyntaxInfo() { Word = wordToParse, Errors = new List<string>() };
-
-            ParseSyntaxInfo childrenInfo = ParseSyntaxWithChildren(wordToParse, wordInstructions);
-
-            if (childrenInfo.Errors.Count == 0)
-            {
-                returnInfo.Word = childrenInfo.Word;
-                Type varType = null;
-                for (int i = 0; i < returnInfo.Word.Children.Count; i++)
-                {
-                    if (i == 0)
-                    {
-                        varType = returnInfo.Word.Children[i].VarType;
-                    }
-                    else if (varType != returnInfo.Word.Children[i].VarType)
-                    {
-                        returnInfo.Errors.Add(returnInfo.Word.Children[i].Input + " is not a " + returnInfo.Word.Children[i].VarType.Name);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                returnInfo.Errors.AddRange(childrenInfo.Errors);
-            }
-            return returnInfo;
-        }
+        
         #endregion
 
         public CommandsInfo CommandGroupCompiler(List<Keyword> keywords)
@@ -1486,6 +1545,8 @@ namespace MyMySql
 
             return returnInfo;
         }
+
+        
 
         public CommandsInfo CommandCustomCustomCompiler(List<Command> commands)
         {
@@ -1738,13 +1799,23 @@ namespace MyMySql
         }
         public ICommandReturn CreateTableFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
-            return commandReturn;
+            List<SqlColumn> newSqlColumns = new List<SqlColumn>();
+            for (int i = 1; i < words.Count; i += 2)
+            {
+                newSqlColumns.Add(new SqlColumn(words[i].Input, Type.GetType(((CustomCustomWord)words[i + 1]).Data.ToString()), null));
+            }
+            Table newTable = new Table(words[0].Input, newSqlColumns.ToArray());
+            for (int i = 0; i < newTable.SqlColumns.Count; i++)
+            {
+                newTable.SqlColumns[i].OwningTable = newTable;
+            }
+            return new RenderString("1 Table Created" + Environment.NewLine, Color.Black);
         }
         public ICommandReturn UpdateFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
-            return commandReturn;
+            return ((TableWord)words[0]).TableDirectory;
         }
-        public ICommandReturn UpdateAfterFunction(ICommandReturn commandReturn, Command command)
+        public ICommandReturn UpdateAfterFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
             return commandReturn;
         }
@@ -1755,9 +1826,9 @@ namespace MyMySql
 
         public ICommandReturn DeleteFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
-            return command.TablesInCommand[0].TableDirectory;
+            return ((TableWord)words[0]).TableDirectory;
         }
-        public ICommandReturn DeleteAfterFunction(ICommandReturn commandReturn, Command command)
+        public ICommandReturn DeleteAfterFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
             int amountOfRowsDeleted = 0;
             List<SqlRow> rowsToDelete = commandReturn.ReturnTable.Select();
@@ -1773,7 +1844,7 @@ namespace MyMySql
             return new RenderString(amountOfRowsDeleted.ToString() + " Rows(s) Deleted" + Environment.NewLine, Color.Black);
         }
 
-        public ICommandReturn NothingAfterCommmandFunction(ICommandReturn commandReturn, Command command)
+        public ICommandReturn NothingAfterCommmandFunction(ICommandReturn commandReturn, List<IWord> words, Command command)
         {
             return commandReturn;
         }
@@ -1796,7 +1867,7 @@ namespace MyMySql
         {
             return commandReturn;
         }
-        
+
         public List<IWord> CountBeforeFunction(FunctionWord function, List<TableWord> tables)
         {
             return function.Children[0].Children;
@@ -1830,6 +1901,21 @@ namespace MyMySql
             return returnTable;
         }
         #endregion
+
+        List<List<WordRange>> GetAllPossibleWordRanges(List<WordRange> firstRanges, List<WordRange> secondRanges)
+        {
+            List<List<WordRange>> returnList = new List<List<WordRange>>();
+
+            foreach (WordRange firstRange in firstRanges)
+            {
+                foreach (WordRange secondRange in secondRanges)
+                {
+                    returnList.Add(new List<WordRange>() { firstRange, secondRange });
+                }
+            }
+
+            return returnList;
+        }
     }
     public struct CommandsInfo
     {
