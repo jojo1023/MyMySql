@@ -15,6 +15,7 @@ namespace MyMySql.IWords
         public List<TableWord> TablesInCommand { get; set; }
         public List<ColumnWord> ColumnsInCommand { get; set; }
         public List<CustomCustomWord> CustomCustomsInCommand { get; set; }
+        public List<IOperation> OperationsInCommand { get; set; }
 
         public InputInfo Input { get; set; }
         public Type Output { get; set; }
@@ -26,6 +27,8 @@ namespace MyMySql.IWords
             KeywordsInCommand = keywordsInCommand;
             TablesInCommand = new List<TableWord>();
             ColumnsInCommand = new List<ColumnWord>();
+            CustomCustomsInCommand = new List<CustomCustomWord>();
+            OperationsInCommand = new List<IOperation>();
             Input = input;
             Output = output;
             ChildCommand = null;
@@ -37,6 +40,8 @@ namespace MyMySql.IWords
             KeywordsInCommand = keywordsInCommand;
             TablesInCommand = new List<TableWord>();
             ColumnsInCommand = new List<ColumnWord>();
+            CustomCustomsInCommand = new List<CustomCustomWord>();
+            OperationsInCommand = new List<IOperation>();
             Input = dictionaryCommand.Input;
             Output = dictionaryCommand.Output;
             ChildCommand = null;
@@ -48,6 +53,8 @@ namespace MyMySql.IWords
             KeywordsInCommand = keywordsInCommand;
             TablesInCommand = new List<TableWord>();
             ColumnsInCommand = new List<ColumnWord>();
+            CustomCustomsInCommand = new List<CustomCustomWord>();
+            OperationsInCommand = new List<IOperation>();
             Input = dictionaryCommand.Input;
             Output = dictionaryCommand.Output;
             ChildCommand = childCommand;
@@ -59,11 +66,12 @@ namespace MyMySql.IWords
             TablesInCommand = new List<TableWord>();
             ColumnsInCommand = new List<ColumnWord>();
             CustomCustomsInCommand = new List<CustomCustomWord>();
+            OperationsInCommand = new List<IOperation>();
             foreach (List<CommandKeywordInfo> keywords in KeywordsInCommand)
             {
                 if (keywords.Count == 1)
                 {
-                    GetCustomWordsInCommandRecursive(keywords[0].CommandKeyword, false);
+                    GetCustomWordsInCommandRecursive(keywords[0].CommandKeyword);
                 }
                 else
                 {
@@ -76,26 +84,33 @@ namespace MyMySql.IWords
                 ColumnsInCommand.AddRange(ChildCommand.ColumnsInCommand);
                 CustomCustomsInCommand.AddRange(ChildCommand.CustomCustomsInCommand);
                 TablesInCommand.AddRange(ChildCommand.TablesInCommand);
+                OperationsInCommand.AddRange(ChildCommand.OperationsInCommand);
             }
         }
-        void GetCustomWordsInCommandRecursive(IWord currentWord, bool parentIsLogicOpperation)
+        void GetCustomWordsInCommandRecursive(IWord currentWord)
         {
-            if (currentWord.AllWordType == AllWordTypes.Table && !currentWord.Initializing && !parentIsLogicOpperation)
+            if (currentWord.AllWordType == AllWordTypes.Table && !currentWord.Initializing)
             {
                 TablesInCommand.Add((TableWord)currentWord);
             }
-            else if (currentWord.AllWordType == AllWordTypes.Column && !currentWord.Initializing && !parentIsLogicOpperation)
+            else if (currentWord.AllWordType == AllWordTypes.Column && !currentWord.Initializing)
             {
                 ColumnsInCommand.Add((ColumnWord)currentWord);
             }
-            else if (currentWord.AllWordType == AllWordTypes.CustomCustom && !currentWord.Initializing && !parentIsLogicOpperation)
+            else if (currentWord.AllWordType == AllWordTypes.CustomCustom && !currentWord.Initializing)
             {
                 CustomCustomsInCommand.Add((CustomCustomWord)currentWord);
             }
-
-            foreach (IWord child in currentWord.Children)
+            if (currentWord.Children.Count > 0 && currentWord is IOperation)
             {
-                GetCustomWordsInCommandRecursive(child, currentWord.AllWordType == AllWordTypes.LogicOperation);
+                OperationsInCommand.Add((IOperation) currentWord);
+            }
+            else
+            {
+                foreach (IWord child in currentWord.Children)
+                {
+                    GetCustomWordsInCommandRecursive(child);
+                }
             }
         }
         public ICommandReturn RunCommand(ICommandReturn parentCommandReturn)

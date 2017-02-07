@@ -13,5 +13,9 @@ namespace MyMySql.IWords.ILanguageWords
         IOperation LeftChild { get; set; }
         IOperation RightChild { get; set; }
         int OrderOfOperationIndex { get; set; }
+        List<Type> TypesThisOperationWorksWith { get; set; }
+        Func<IComparable, IComparable, IComparable> OperationFunction { get; set; }
+        IComparable CheckOperation(SqlRow row);
+        bool SetTypeToThis { get; set; }
     }
 }

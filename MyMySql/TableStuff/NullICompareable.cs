@@ -10,7 +10,7 @@ namespace MyMySql.TableStuff
     {
         public int CompareTo(object obj)
         {
-            return 0;
+            return 2;
         }
         public override string ToString()
         {

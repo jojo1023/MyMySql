@@ -17,7 +17,7 @@ namespace MyMySql.IWords.ILanguageWords
 
         public WordTypes WordType { get; set; }
 
-        public Func<IComparable, IComparable, IComparable> MathFunction { get; set; }
+        public Func<IComparable, IComparable, IComparable> OperationFunction { get; set; }
 
         public AllWordTypes AllWordType { get; set; }
 
@@ -35,7 +35,14 @@ namespace MyMySql.IWords.ILanguageWords
         {
             get
             {
-                return leftChild;
+                if (Children[0] is IOperation)
+                {
+                    return (IOperation)Children[0];
+                }
+                else
+                {
+                    return leftChild;
+                }
             }
             set
             {
@@ -48,7 +55,14 @@ namespace MyMySql.IWords.ILanguageWords
         {
             get
             {
-                return rightChild;
+                if (Children[1] is IOperation)
+                {
+                    return (IOperation)Children[1];
+                }
+                else
+                {
+                    return rightChild;
+                }
             }
             set
             {
@@ -56,7 +70,6 @@ namespace MyMySql.IWords.ILanguageWords
                 Children[1] = value;
             }
         }
-
         IWord unParsedLeftChild = null;
         public IWord UnParsedLeftChild
         {
@@ -84,12 +97,14 @@ namespace MyMySql.IWords.ILanguageWords
             }
         }
         public int OrderOfOperationIndex { get; set; }
-        public MathOperationWord(string input, int orderOfOpperationIndex, List<List<WordRange>> childrenRanges, Func<IComparable, IComparable, IComparable> mathFunction, Func<IWord,  IWord, ParseSyntaxInfo> parseSyntax)
+        public List<Type> TypesThisOperationWorksWith { get; set; }
+        public bool SetTypeToThis { get; set; }
+        public MathOperationWord(string input, int orderOfOpperationIndex, List<Type> typesThisOperationWorksWith, List<List<WordRange>> childrenRanges, Func<IComparable, IComparable, IComparable> mathFunction, Func<IWord,  IWord, ParseSyntaxInfo> parseSyntax)
         {
             Input = input;
             LanguageWordType = LanguageWordTypes.LogicOpperation;
             WordType = WordTypes.Language;
-            MathFunction = mathFunction;
+            OperationFunction = mathFunction;
             AllWordType = AllWordTypes.MathOperation;
             ParseSyntax = parseSyntax;
             ChildrenRanges = childrenRanges;
@@ -104,13 +119,15 @@ namespace MyMySql.IWords.ILanguageWords
             UnParsedLeftChild = null;
             UnParsedRightChild = null;
             OrderOfOperationIndex = orderOfOpperationIndex;
+            TypesThisOperationWorksWith = typesThisOperationWorksWith;
+            SetTypeToThis = false;
         }
         public MathOperationWord(IOperation leftChild, IOperation rightChild, MathOperationWord dictionaryMathOperation)
         {
             Input = dictionaryMathOperation.Input;
             LanguageWordType = LanguageWordTypes.LogicOpperation;
             WordType = WordTypes.Language;
-            MathFunction = dictionaryMathOperation.MathFunction;
+            OperationFunction = dictionaryMathOperation.OperationFunction;
             AllWordType = AllWordTypes.MathOperation;
             ParseSyntax = dictionaryMathOperation.ParseSyntax;
             ChildrenRanges = new List<List<WordRange>>();
@@ -123,13 +140,15 @@ namespace MyMySql.IWords.ILanguageWords
             this.leftChild = leftChild;
             this.rightChild = rightChild;
             OrderOfOperationIndex = dictionaryMathOperation.OrderOfOperationIndex;
+            TypesThisOperationWorksWith = dictionaryMathOperation.TypesThisOperationWorksWith;
+            SetTypeToThis = false;
         }
         public MathOperationWord(IWord unParsedLeftChild, IWord unParsedRightChild, MathOperationWord dictionaryMathOperation)
         {
             Input = dictionaryMathOperation.Input;
             LanguageWordType = LanguageWordTypes.LogicOpperation;
             WordType = WordTypes.Language;
-            MathFunction = dictionaryMathOperation.MathFunction;
+            OperationFunction = dictionaryMathOperation.OperationFunction;
             AllWordType = AllWordTypes.MathOperation;
             ParseSyntax = dictionaryMathOperation.ParseSyntax;
             ChildrenRanges = new List<List<WordRange>>();
@@ -142,6 +161,18 @@ namespace MyMySql.IWords.ILanguageWords
             this.unParsedLeftChild = unParsedLeftChild;
             this.unParsedRightChild = unParsedRightChild;
             OrderOfOperationIndex = dictionaryMathOperation.OrderOfOperationIndex;
+            TypesThisOperationWorksWith = dictionaryMathOperation.TypesThisOperationWorksWith;
+            SetTypeToThis = false;
+        }
+        public IComparable CheckOperation(SqlRow row)
+        {
+            IComparable leftOperationCheck = LeftChild.CheckOperation(row);
+            IComparable rightOperationCheck = RightChild.CheckOperation(row);
+            if (leftOperationCheck != null && rightOperationCheck != null)
+            {
+                return OperationFunction?.Invoke(leftOperationCheck, rightOperationCheck);
+            }
+            return null;
         }
     }
 }

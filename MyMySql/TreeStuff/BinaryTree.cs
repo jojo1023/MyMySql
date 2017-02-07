@@ -103,6 +103,10 @@ namespace MyMySql
                         }
                     }
                     nodeToDelete.Right.Parent = nodeToDeleteParent;
+                    if (BaseNode == nodeToDelete)
+                    {
+                        BaseNode = nodeToDelete.Right;
+                    }
                 }
 
                 //NodeToDelete doesn't have children so it is deleted
@@ -193,7 +197,7 @@ namespace MyMySql
                 }
             }
         }
-        
+
         /// <summary>
         /// Gets a node in the table from its value
         /// </summary>
@@ -232,7 +236,7 @@ namespace MyMySql
             }
             return null;
         }
-        
+
         /// <summary>
         /// Gets the node that is all the way to the left (the node with the smallest value)
         /// </summary>
@@ -331,7 +335,7 @@ namespace MyMySql
             {
                 List<T> bottomHalfToBeBalanced;
                 List<T> TopHalfToBeBalanced;
-                
+
                 if (sortedList.Count % 2 == 0)
                 {
                     returnList.Add(sortedList[sortedList.Count / 2 - 1]);
@@ -348,7 +352,7 @@ namespace MyMySql
                     bottomHalfToBeBalanced = sortedList.Take(sortedList.Count / 2 - 1).ToList();
                     TopHalfToBeBalanced = sortedList.Skip(sortedList.Count / 2 - 1).ToList();
                 }
-                
+
                 returnList.AddRange(balanceSort(bottomHalfToBeBalanced));
                 returnList.AddRange(balanceSort(TopHalfToBeBalanced));
             }

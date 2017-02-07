@@ -17,7 +17,7 @@ namespace MyMySql.IWords.ILanguageWords
 
         public WordTypes WordType { get; set; }
 
-        public Func<IComparable, IComparable, bool> LogicFunction { get; set; }
+        public Func<IComparable, IComparable, IComparable> OperationFunction { get; set; }
 
         public AllWordTypes AllWordType { get; set; }
 
@@ -28,13 +28,21 @@ namespace MyMySql.IWords.ILanguageWords
         public List<IWord> WordsThisCouldBe { get; set; }
         public bool Initializing { get; set; }
         public List<WordRange> RangesThatWorked { get; set; }
+        public List<Type> TypesThisOperationWorksWith { get; set; }
 
         IOperation leftChild = null;
         public IOperation LeftChild
         {
             get
             {
-                return leftChild;
+                if (Children[0] is IOperation)
+                {
+                    return (IOperation)Children[0];
+                }
+                else
+                {
+                    return leftChild;
+                }
             }
             set
             {
@@ -47,7 +55,14 @@ namespace MyMySql.IWords.ILanguageWords
         {
             get
             {
-                return rightChild;
+                if (Children[1] is IOperation)
+                {
+                    return (IOperation)Children[1];
+                }
+                else
+                {
+                    return rightChild;
+                }
             }
             set
             {
@@ -85,12 +100,13 @@ namespace MyMySql.IWords.ILanguageWords
             }
         }
         public int OrderOfOperationIndex { get; set; }
-        public LogicOperationWord(string input, int orderOfOperaionIndex, Func<IComparable, IComparable, bool> logicFunction, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, List<List<WordRange>> childrenRanges)
+        public bool SetTypeToThis { get; set; }
+        public LogicOperationWord(string input, int orderOfOperaionIndex, List<Type> typesThatThisOperationWorksWith, Func<IComparable, IComparable, IComparable> logicFunction, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, List<List<WordRange>> childrenRanges)
         {
             Input = input;
             LanguageWordType = LanguageWordTypes.LogicOpperation;
             WordType = WordTypes.Language;
-            LogicFunction = logicFunction;
+            OperationFunction = logicFunction;
             AllWordType = AllWordTypes.LogicOperation;
             ParseSyntax = parseSyntax;
             ChildrenRanges = childrenRanges;
@@ -98,9 +114,11 @@ namespace MyMySql.IWords.ILanguageWords
             WordsThisCouldBe = new List<IWord>();
             Initializing = false;
             RangesThatWorked = null;
-            VarType = null;
+            VarType = typeof(LogicOperationWord);
             UserInfo = false;
             OrderOfOperationIndex = orderOfOperaionIndex;
+            TypesThisOperationWorksWith = typesThatThisOperationWorksWith;
+            SetTypeToThis = true;
         }
         public LogicOperationWord(IOperation leftChild, IOperation rightChild, List<WordRange> rangesThatWorked, LogicOperationWord other)
         {
@@ -108,7 +126,7 @@ namespace MyMySql.IWords.ILanguageWords
             LanguageWordType = LanguageWordTypes.LogicOpperation;
             WordType = WordTypes.Language;
             AllWordType = AllWordTypes.LogicOperation;
-            LogicFunction = other.LogicFunction;
+            OperationFunction = other.OperationFunction;
             ParseSyntax = other.ParseSyntax;
             ChildrenRanges = other.ChildrenRanges;
             Children = new List<IWord>() { leftChild, rightChild };
@@ -117,8 +135,10 @@ namespace MyMySql.IWords.ILanguageWords
             RangesThatWorked = rangesThatWorked;
             WordsThisCouldBe = new List<IWord>();
             Initializing = false;
-            VarType = null;
+            VarType = typeof(LogicOperationWord);
             OrderOfOperationIndex = other.OrderOfOperationIndex;
+            TypesThisOperationWorksWith = other.TypesThisOperationWorksWith;
+            SetTypeToThis = true;
         }
         public LogicOperationWord(IWord unParsedLeftChild, IWord unParsedRightChild, List<WordRange> rangesThatWorked, LogicOperationWord other)
         {
@@ -126,17 +146,29 @@ namespace MyMySql.IWords.ILanguageWords
             LanguageWordType = LanguageWordTypes.LogicOpperation;
             WordType = WordTypes.Language;
             AllWordType = AllWordTypes.LogicOperation;
-            LogicFunction = other.LogicFunction;
+            OperationFunction = other.OperationFunction;
             ParseSyntax = other.ParseSyntax;
             ChildrenRanges = other.ChildrenRanges;
             Children = new List<IWord>() { unParsedLeftChild, unParsedRightChild };
             RangesThatWorked = rangesThatWorked;
             WordsThisCouldBe = new List<IWord>();
             Initializing = false;
-            VarType = null;
+            VarType = typeof(LogicOperationWord);
             this.unParsedLeftChild = unParsedLeftChild;
             this.unParsedRightChild = unParsedRightChild;
             OrderOfOperationIndex = other.OrderOfOperationIndex;
+            TypesThisOperationWorksWith = other.TypesThisOperationWorksWith;
+            SetTypeToThis = true;
+        }
+        public IComparable CheckOperation(SqlRow row)
+        {
+            IComparable leftOperationCheck = LeftChild.CheckOperation(row);
+            IComparable rightOperationCheck = RightChild.CheckOperation(row);
+            if (leftOperationCheck != null && rightOperationCheck != null)
+            {
+                return OperationFunction?.Invoke(leftOperationCheck, rightOperationCheck);
+            }
+            return null;
         }
     }
 }

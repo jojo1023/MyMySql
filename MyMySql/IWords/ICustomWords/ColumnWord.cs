@@ -45,6 +45,11 @@ namespace MyMySql.IWords.ICustomWords
 
         public IWord UnParsedRightChild { get; set; }
         public int OrderOfOperationIndex { get; set; }
+        public List<Type> TypesThisOperationWorksWith { get; set; }
+        public Func<IComparable, IComparable, IComparable> OperationFunction { get; set; }
+
+        public bool SetTypeToThis { get; set; }
+
         public ColumnWord(string input, SqlColumn columnDirectory, Table owningTasble, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax, bool initializing)
         {
             Alias = input;
@@ -74,6 +79,9 @@ namespace MyMySql.IWords.ICustomWords
             UnParsedLeftChild = null;
             UnParsedRightChild = null;
             OrderOfOperationIndex = 0;
+            TypesThisOperationWorksWith = new List<Type>();
+            OperationFunction = columnFunction;
+            SetTypeToThis = false;
         }
         public ColumnWord(ColumnWord other)
         {
@@ -104,6 +112,22 @@ namespace MyMySql.IWords.ICustomWords
             UnParsedLeftChild = null;
             UnParsedRightChild = null;
             OrderOfOperationIndex = 0;
+            TypesThisOperationWorksWith = new List<Type>();
+            SetTypeToThis = false;
+        }
+        public IComparable columnFunction(IComparable item1, IComparable item2)
+        {
+            return true;
+        }
+
+        public IComparable CheckOperation(SqlRow row)
+        {
+            int colIndex = row.GetColumnIndex(ColumnDirectory);
+            if(colIndex >= 0)
+            {
+                return row.Cells[colIndex].Value;
+            }
+            return null;
         }
     }
 }

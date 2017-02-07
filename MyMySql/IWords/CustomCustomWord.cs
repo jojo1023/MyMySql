@@ -43,7 +43,9 @@ namespace MyMySql.IWords.ICustomWords
         public IWord UnParsedRightChild { get; set; }
 
         public int OrderOfOperationIndex { get; set; }
-
+        public List<Type> TypesThisOperationWorksWith { get; set; }
+        public Func<IComparable, IComparable, IComparable> OperationFunction { get; set; }
+        public bool SetTypeToThis { get; set; }
         public CustomCustomWord(string input, Type varType, IComparable data, Func<IWord, IWord, ParseSyntaxInfo> parseSyntax)
         {
             Input = input;
@@ -64,7 +66,17 @@ namespace MyMySql.IWords.ICustomWords
             UnParsedLeftChild = null;
             UnParsedRightChild = null;
             OrderOfOperationIndex = 0;
+            TypesThisOperationWorksWith = new List<Type>();
+            OperationFunction = customCustomFunction;
+            SetTypeToThis = false;
         }
-        
+        public IComparable customCustomFunction(IComparable item1, IComparable item2)
+        {
+            return true;
+        }
+        public IComparable CheckOperation(SqlRow row)
+        {
+            return Data;
+        }
     }
 }
