@@ -25,6 +25,7 @@ namespace MyMySql
 
         Dictionary<string, LogicOperationWord> logicOperationDictionary = new Dictionary<string, LogicOperationWord>();
         Dictionary<string, MathOperationWord> mathOperationDictionary = new Dictionary<string, MathOperationWord>();
+        Dictionary<AllWordTypes, int> possibleOperationTypes = new Dictionary<AllWordTypes, int>();
         List<char> logicOperationChars = new List<char>();
         List<char> mathOperationChars = new List<char>();
         Dictionary<string, Type> typeDictionary = new Dictionary<string, Type>();
@@ -48,6 +49,7 @@ namespace MyMySql
         Trie commandTrie = new Trie(false);
         public Database(XDocument xdoc)
         {
+            possibleOperationTypes.Add(AllWordTypes.Parentheses, 0);
             typeDictionary.Add("int", typeof(int));
             typeDictionary.Add("string", typeof(string));
             typeDictionary.Add("bool", typeof(bool));
@@ -96,7 +98,7 @@ namespace MyMySql
                 }
             }
             logicOperationDictionary.Add("and", new LogicOperationWord("and", 5, new List<Type>() { typeof(LogicOperationWord) }, AndFunction, ParseSyntaxWithChildren, new List<List<WordRange>>() { andOrRanges }));
-            logicOperationDictionary.Add("or", new LogicOperationWord("or", 5, new List<Type>() { typeof(LogicOperationWord) }, OrFunction, ParseSyntaxWithChildren, new List<List<WordRange>>() { andOrRanges }));
+            logicOperationDictionary.Add("or", new LogicOperationWord("or", 6, new List<Type>() { typeof(LogicOperationWord) }, OrFunction, ParseSyntaxWithChildren, new List<List<WordRange>>() { andOrRanges }));
 
             mathOperationDictionary.Add("+", new MathOperationWord("+", 2, new List<Type>() { typeof(int), typeof(string) }, oppeartionListOfRanges, AddFunction, ParseSyntaxWithChildren));
             mathOperationDictionary.Add("-", new MathOperationWord("-", 2, new List<Type>() { typeof(int) }, oppeartionListOfRanges, SubtractFunction, ParseSyntaxWithChildren));
@@ -273,16 +275,6 @@ namespace MyMySql
 
 
             LoadXML(xdoc);
-            //tables["Students"].Tree.BaseNode = null;
-            //tables.Add("Students2", null);
-            //tables["Students2"] = new Table("Students2", new SqlColumn("StudentID", typeof(int), tables["Students2"]), new SqlColumn("Name", typeof(string), tables["Students2"]));
-            //tables["Students2"].AddRow(0, "josiah");
-            //tables["Students2"].AddRow(1, "bob");
-            //tables.Add("Animals", null);
-            //tables["Animals"] = new Table("Animals", new SqlColumn("AnimalID", typeof(int)), new SqlColumn("Name", typeof(string)));
-            //tables["Animals"].AddRow(0, "mesha");
-            //tables["Animals"].AddRow(1, "ringo");
-            //tables["Animals"].AddRow(2, "coco");
             foreach (Table table in tables.Values)
             {
                 tableDictionary.Add(table.Name, new TableWord(table.Name, "", table, ParseCustomSyntax, false));
@@ -791,33 +783,86 @@ namespace MyMySql
             //loops throught the lexemes to find the opperations
             for (int i = returnInfo.Lexemes.Count - 1; i >= 0; i--)
             {
+                bool isOperation = false;
+                string fullOperation = lexemes[i].Input.ToLower();
+                IOperation operation = null;
                 //if the current lexeme is an opperation lexeme then find the rest of the opperation and change this lexeme to an opperation
-                if (returnInfo.Lexemes[i].AllWordType == AllWordTypes.TempSyntaxOperation || logicOperationDictionary.ContainsKey(lexemes[i].Input.ToLower()) || mathOperationDictionary.ContainsKey(lexemes[i].Input.ToLower()))
-                {
-                    string fullOperation = lexemes[i].Input.ToLower();
-                    if (returnInfo.Lexemes[i].AllWordType == AllWordTypes.TempSyntaxOperation)
-                    {
-                        SyntaxWord syntaxLexeme = (SyntaxWord)returnInfo.Lexemes[i];
 
-                        fullOperation = syntaxLexeme.Input;
-                        if (logicOperationChars.Contains(syntaxLexeme.StartingSyntax) || mathOperationChars.Contains(syntaxLexeme.StartingSyntax))
+                if (returnInfo.Lexemes[i].AllWordType == AllWordTypes.TempSyntaxOperation)
+                {
+                    isOperation = true;
+                    SyntaxWord syntaxLexeme = (SyntaxWord)returnInfo.Lexemes[i];
+
+                    fullOperation = syntaxLexeme.Input;
+                    if (logicOperationChars.Contains(syntaxLexeme.StartingSyntax) || mathOperationChars.Contains(syntaxLexeme.StartingSyntax))
+                    {
+                        //loops forward in the lexemes to get the fullOperation 
+                        for (int j = i - 1; j >= 0; j--)
                         {
-                            //loops forward in the lexemes to get the fullOperation 
-                            for (int j = i - 1; j >= 0; j--)
+                            if (returnInfo.Lexemes[j].AllWordType == AllWordTypes.TempSyntaxOperation && (logicOperationChars.Contains(((SyntaxWord)returnInfo.Lexemes[j]).StartingSyntax) || mathOperationChars.Contains(((SyntaxWord)returnInfo.Lexemes[j]).StartingSyntax)))
                             {
-                                if (returnInfo.Lexemes[j].AllWordType == AllWordTypes.TempSyntaxOperation && (logicOperationChars.Contains(((SyntaxWord)returnInfo.Lexemes[j]).StartingSyntax) || mathOperationChars.Contains(((SyntaxWord)returnInfo.Lexemes[j]).StartingSyntax)))
-                                {
-                                    fullOperation = returnInfo.Lexemes[j].Input + fullOperation;
-                                    returnInfo.Lexemes.RemoveAt(j);
-                                    i = i - 1;
-                                }
-                                else
-                                {
-                                    break;
-                                }
+                                fullOperation = returnInfo.Lexemes[j].Input + fullOperation;
+                                returnInfo.Lexemes.RemoveAt(j);
+                                i = i - 1;
+                            }
+                            else
+                            {
+                                break;
                             }
                         }
                     }
+                }
+                else if (logicOperationDictionary.ContainsKey(lexemes[i].Input.ToLower()) || mathOperationDictionary.ContainsKey(lexemes[i].Input.ToLower()))
+                {
+                    fullOperation = lexemes[i].Input.ToLower();
+                    isOperation = true;
+                }
+                //if the current lexeme is syntax (comma or parentheses) handle the opperations in their children
+                else if (lexemes[i].Children.Count > 0)
+                {
+                    CompilerInfo syntaxChildenInfo = OperationCompiler(lexemes[i].Children);
+                    if (returnInfo.Errors.Count == 0)
+                    {
+                        lexemes[i].Children = syntaxChildenInfo.Lexemes;
+                        if (possibleOperationTypes.ContainsKey(lexemes[i].AllWordType) && lexemes[i].Children.Count == 1)
+                        {
+                            AllWordTypes allWordType = lexemes[i].AllWordType;
+                            returnInfo.Lexemes[i] = lexemes[i].Children[0];
+                            if (returnInfo.Lexemes[i] is IOperation)
+                            {
+                                operation = (IOperation)returnInfo.Lexemes[i];
+                                operation.OrderOfOperationIndex = possibleOperationTypes[allWordType];
+                                IWord leftChild = operation.UnParsedLeftChild;
+                                operation.UnParsedLeftChild = null;
+                                IWord rightChild = operation.UnParsedRightChild;
+                                operation.UnParsedRightChild = null;
+                                operation.Children = new List<IWord>() { null, null };
+                                List<IWord> nextWords = returnInfo.Lexemes.Skip(i + 1).ToList();
+                                returnInfo.Lexemes.RemoveRange(i, returnInfo.Lexemes.Count - i);
+
+                                if (leftChild != null)
+                                {
+                                    returnInfo.Lexemes.Add(leftChild);
+                                    i = i + 1;
+                                }
+                                returnInfo.Lexemes.Add(operation);
+                                if (rightChild != null)
+                                {
+                                    returnInfo.Lexemes.Add(rightChild);
+                                }
+                                returnInfo.Lexemes.AddRange(nextWords);
+                                isOperation = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                if (isOperation)
+                {
                     bool breakAfterSetingChildren = false;
                     IWord leftWord = null;
                     if (i - 1 > 0 && returnInfo.Lexemes[i - 2].AllWordType == AllWordTypes.TempSyntaxOperation)
@@ -859,68 +904,29 @@ namespace MyMySql
                         returnInfo.Lexemes.RemoveAt(i + 1);
                     }
 
-                    IOperation operation;
-                    //Sets the current lexeme to an opperation
-                    if (logicOperationDictionary.Keys.Contains(fullOperation))
+                    if (operation != null)
                     {
-                        returnInfo.Lexemes[i] = operation = new LogicOperationWord(leftWord, rightWord, new List<WordRange>(), logicOperationDictionary[fullOperation]);
-                    }
-                    else if (mathOperationDictionary.Keys.Contains(fullOperation))
-                    {
-                        returnInfo.Lexemes[i] = operation = new MathOperationWord(leftWord, rightWord, mathOperationDictionary[fullOperation]);
+                        operation.UnParsedLeftChild = leftWord;
+                        operation.UnParsedRightChild = rightWord;
                     }
                     else
                     {
-                        returnInfo.Errors.Add("Incorect use of " + fullOperation);
-                        break;
-                    }
-
-                    IOperation leftOperation = null;
-                    if (leftWord is IOperation)
-                    {
-                        leftOperation = (IOperation)leftWord;
-                    }
-                    IOperation rightOperation = null;
-                    if (rightWord is IOperation)
-                    {
-                        rightOperation = (IOperation)rightWord;
-                    }
-
-                    if (leftOperation != null && leftOperation.OrderOfOperationIndex > operation.OrderOfOperationIndex)
-                    {
-                        operation.UnParsedLeftChild = null;
-                        operation.UnParsedLeftChild = leftOperation.UnParsedRightChild;
-                        leftOperation.UnParsedRightChild = null;
-                        leftOperation.UnParsedRightChild = operation;
-                        IOperation temp = operation;
-                        operation = null;
-                        operation = leftOperation;
-                        leftOperation = temp;
-                        rightOperation = null;
-                        returnInfo.Lexemes[i] = operation;
-                        if (rightWord is IOperation)
+                        //Sets the current lexeme to an opperation
+                        if (logicOperationDictionary.Keys.Contains(fullOperation))
                         {
-                            rightOperation = (IOperation)operation.UnParsedRightChild;
+                            returnInfo.Lexemes[i] = operation = new LogicOperationWord(leftWord, rightWord, new List<WordRange>(), logicOperationDictionary[fullOperation]);
+                        }
+                        else if (mathOperationDictionary.Keys.Contains(fullOperation))
+                        {
+                            returnInfo.Lexemes[i] = operation = new MathOperationWord(leftWord, rightWord, mathOperationDictionary[fullOperation]);
+                        }
+                        else
+                        {
+                            returnInfo.Errors.Add("Incorect use of " + fullOperation);
+                            break;
                         }
                     }
-
-                    if (rightOperation != null && rightOperation.OrderOfOperationIndex > operation.OrderOfOperationIndex)
-                    {
-                        operation.UnParsedRightChild = null;
-                        operation.UnParsedRightChild = leftOperation.UnParsedLeftChild;
-                        rightOperation.UnParsedLeftChild = null;
-                        rightOperation.UnParsedLeftChild = operation;
-                        IOperation temp = operation;
-                        operation = null;
-                        operation = rightOperation;
-                        rightOperation = temp;
-                        leftOperation = null;
-                        returnInfo.Lexemes[i] = operation;
-                        if (leftWord is IOperation)
-                        {
-                            leftOperation = (IOperation)operation.UnParsedLeftChild;
-                        }
-                    }
+                    returnInfo.Lexemes[i] = OrderOperation(operation);
 
                     if (breakAfterSetingChildren)
                     {
@@ -928,21 +934,72 @@ namespace MyMySql
                     }
 
                 }
-                //if the current lexeme is syntax (comma or parentheses) handle the opperations in their children
-                else if (lexemes[i].Children.Count > 0)
-                {
-                    CompilerInfo syntaxChildenInfo = OperationCompiler(lexemes[i].Children);
-                    if (returnInfo.Errors.Count == 0)
-                    {
-                        lexemes[i].Children = syntaxChildenInfo.Lexemes;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
             }
             return returnInfo;
+        }
+        IOperation OrderOperation(IOperation operation)
+        {
+            IOperation leftOperation = null;
+            if (operation.UnParsedLeftChild is IOperation)
+            {
+                leftOperation = (IOperation)operation.UnParsedLeftChild;
+            }
+            IOperation rightOperation = null;
+            if (operation.UnParsedRightChild is IOperation)
+            {
+                rightOperation = (IOperation)operation.UnParsedRightChild;
+            }
+            if (leftOperation != null && leftOperation.OrderOfOperationIndex > operation.OrderOfOperationIndex)
+            {
+                operation.UnParsedLeftChild = null;
+                operation.UnParsedLeftChild = leftOperation.UnParsedRightChild;
+                leftOperation.UnParsedRightChild = null;
+                leftOperation.UnParsedRightChild = operation;
+                IOperation temp = operation;
+                operation = null;
+                operation = leftOperation;
+                leftOperation = null;
+                rightOperation = temp;
+                rightOperation = null;
+                if (operation.UnParsedRightChild is IOperation)
+                {
+                    rightOperation = (IOperation)operation.UnParsedRightChild;
+                }
+            }
+
+            if (rightOperation != null && rightOperation.OrderOfOperationIndex > operation.OrderOfOperationIndex)
+            {
+                operation.UnParsedRightChild = null;
+                operation.UnParsedRightChild = leftOperation.UnParsedLeftChild;
+                rightOperation.UnParsedLeftChild = null;
+                rightOperation.UnParsedLeftChild = operation;
+                IOperation temp = operation;
+                operation = null;
+                operation = rightOperation;
+                rightOperation = temp;
+                leftOperation = null;
+                if (operation.UnParsedLeftChild is IOperation)
+                {
+                    leftOperation = (IOperation)operation.UnParsedLeftChild;
+                }
+            }
+            if (rightOperation != null)
+            {
+                IOperation newRightOperation = OrderOperation(rightOperation);
+                if (newRightOperation != null)
+                {
+                    operation.UnParsedRightChild = newRightOperation;
+                }
+            }
+            if (leftOperation != null)
+            {
+                IOperation newLeftOperation = OrderOperation(leftOperation);
+                if(newLeftOperation != null)
+                {
+                    operation.UnParsedLeftChild = newLeftOperation;
+                }
+            }
+            return operation;
         }
         #endregion
 
